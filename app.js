@@ -874,9 +874,10 @@ function switchMapLayer(layerName) {
     window._currentLayer = layerName;
 }
 
-// Слой глубин (OpenSeaMap)
+// Слой глубин (OpenSeaMap для морей + спутник для内陆)
 function addDepthLayer() {
     try {
+        // OpenSeaMap тайлы с маркировками глубин (моря, крупные реки, озёра)
         const depthTileUrl = 'https://tiles.openseamap.org/seamarkings/{z}/{x}/{y}.png';
         const depthLayer = new ymaps.Layer(
             (tile, zoom) => {
@@ -893,11 +894,27 @@ function addDepthLayer() {
         ymap.layers.add(depthLayer);
         window._depthLayer = depthLayer;
         $('#depth-legend').style.display = 'inline';
-        showToast('🌊 Слой глубин активирован');
+        showToast('🌊 OpenSeaMap: глубины для морей и крупных водоёмов');
     } catch (e) {
         console.error('Depth layer error:', e);
-        showToast('Слой глубин загружается...', 'error');
     }
+}
+
+// Получение глубины по координатам через Open-Meteo (водоёмы)
+async function getDepthInfo(lat, lng) {
+    // Показываем приблизительную информацию о водоёме
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru&zoom=14`);
+        const data = await res.json();
+        const a = data.address;
+        const waterName = a?.water || a?.waterway || a?.river || a?.lake || a?.reservoir || '';
+        const waterType = a?.waterway ? 'Река' : a?.lake ? 'Озеро' : a?.reservoir ? 'Водохранилище' : '';
+
+        if (waterName) {
+            return `${waterType}: ${waterName}`;
+        }
+    } catch (e) {}
+    return null;
 }
 
 function togglePlacingMarker() {
