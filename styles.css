@@ -739,6 +739,14 @@ form { padding: 16px; }
     gap: 12px;
     margin-bottom: 8px;
 }
+.fish-card-img {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: var(--bg);
+}
+.fish-card-info { flex: 1; }
 .fish-card-emoji { font-size: 2.2rem; }
 .fish-card-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
 .fish-card-season {

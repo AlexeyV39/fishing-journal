@@ -51,9 +51,11 @@
                             </div>
                             <div class="weather-details-grid">
                                 <div class="wd-item"><span class="wd-icon">💨</span><span id="today-wind">-- м/с</span><span class="wd-label">Ветер</span></div>
+                                <div class="wd-item"><span class="wd-icon">🧭</span><span id="today-wind-dir">--</span><span class="wd-label">Направление</span></div>
                                 <div class="wd-item"><span class="wd-icon">💧</span><span id="today-humidity">--%</span><span class="wd-label">Влажность</span></div>
                                 <div class="wd-item"><span class="wd-icon">📊</span><span id="today-pressure">-- мм</span><span class="wd-label">Давление</span></div>
                                 <div class="wd-item"><span class="wd-icon">🌡</span><span class="wd-temp-range"><span id="today-temp-min">--°</span>/<span id="today-temp-max">--°</span></span><span class="wd-label">Мин/Макс</span></div>
+                                <div class="wd-item"><span class="wd-icon">🐟</span><span id="today-water-temp">--°C</span><span class="wd-label">Темп. воды</span></div>
                             </div>
                         </div>
                         <!-- Завтра -->
@@ -278,8 +280,14 @@
                     <div class="setting-buttons">
                         <button class="btn btn-secondary" id="export-json">JSON</button>
                         <button class="btn btn-secondary" id="export-csv">CSV</button>
+                        <button class="btn btn-secondary" id="export-pdf-btn">📄 Отчёт</button>
                         <button class="btn btn-danger" id="clear-data">Удалить всё</button>
                     </div>
+                </div>
+                <div class="setting-item">
+                    <label>Уведомления</label>
+                    <p class="setting-desc">Уведомления о хорошем клёве</p>
+                    <button class="btn btn-primary" id="enable-notif-btn">🔔 Включить уведомления</button>
                 </div>
             </div>
         </section>
@@ -464,5 +472,10 @@
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+    </script>
 </body>
 </html>
