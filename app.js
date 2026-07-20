@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadWeather();
     calcMoonPhase();
     updateForecast();
+    renderCalendar();
 });
 
 // ─── Хранилище ───
@@ -125,6 +126,10 @@ function setupEvents() {
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
+
+    // Маршрут
+    $('#close-route-modal').addEventListener('click', () => $('#route-modal').classList.remove('active'));
+    $('#route-modal').addEventListener('click', (e) => { if (e.target === $('#route-modal')) $('#route-modal').classList.remove('active'); });
 
     // Закрытие модалок по фону
     $('#catch-modal').addEventListener('click', (e) => { if (e.target === $('#catch-modal')) closeCatchModal(); });
@@ -674,7 +679,8 @@ function addPlacemark(m) {
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
             + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
-            + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Навигатор — построить маршрут</a>'
+            + '<button onclick="buildRoute(' + m.lat + ',' + m.lng + ',\'' + m.name.replace(/'/g,"\\'") + '\')" style="display:block;padding:10px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;">🗺 Построить маршрут</button>'
+            + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Открыть в Навигаторе</a>'
             + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
             + '</div>'
     }, {
@@ -746,6 +752,17 @@ function mapLocateMe() {
     );
 }
 
+// Построение маршрута в приложении
+function buildRoute(lat, lng, name) {
+    const routeUrl = 'https://yandex.ru/maps/?rtext=' + lat + ',' + lng + '&rtt=auto&z=14';
+    const naviUrl = 'yandexnavi://build_route_on_map?lat_to=' + lat + '&lon_to=' + lng;
+
+    $('#route-title').textContent = '🗺 Маршрут к: ' + name;
+    $('#route-iframe').src = routeUrl;
+    $('#route-open-navi').href = naviUrl;
+    $('#route-modal').classList.add('active');
+}
+
 // ─── Экспорт/Импорт ───
 function exportData(format) {
     if (!catches.length) { alert('Нет данных для экспорта'); return; }
@@ -801,3 +818,4 @@ window.openEditModal = openEditModal;
 window.openDeleteModal = openDeleteModal;
 window.selectCalendarDay = selectCalendarDay;
 window.deleteMapMarker = deleteMapMarker;
+window.buildRoute = buildRoute;
