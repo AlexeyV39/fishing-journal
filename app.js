@@ -640,14 +640,14 @@ function addPlacemark(m) {
         fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + m.fish + '</div>';
     }
 
-    const naviUrl = 'yandexnavi://';
+    const naviUrl = 'yandexnavi://build_route_on_map?lat_to=' + m.lat + '&lon_to=' + m.lng;
 
     const placemark = new ymaps.Placemark([m.lat, m.lng], {
         balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">🐟 ' + m.name + '</div>'
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
             + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
-            + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Навигатор</a>'
+            + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Навигатор — построить маршрут</a>'
             + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
             + '</div>'
     }, {
