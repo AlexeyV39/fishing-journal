@@ -176,9 +176,21 @@
                     <button class="btn btn-primary btn-small" id="add-marker-btn">+ Добавить точку</button>
                 </div>
             </div>
+            <div class="map-search">
+                <input type="text" id="map-search-input" placeholder="Поиск места... (деревня, река, озеро)" class="search-input">
+                <button class="btn btn-primary btn-small" id="map-search-btn">🔍</button>
+            </div>
             <div id="map-container"></div>
             <div class="map-legend">
                 <span>🐟 Мои точки рыбалки</span>
+            </div>
+
+            <!-- Список сохранённых точек -->
+            <div class="saved-points">
+                <h3>Мои точки (<span id="points-count">0</span>)</h3>
+                <div id="points-list" class="points-list">
+                    <p class="empty-state">Пока нет сохранённых точек</p>
+                </div>
             </div>
         </section>
 

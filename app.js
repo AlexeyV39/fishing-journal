@@ -94,7 +94,7 @@ function setupEvents() {
     $('#sort-select').addEventListener('change', updateJournal);
 
     // Показать/скрыть секцию улова
-    $('input[name="catch-status"]').forEach(r => r.addEventListener('change', toggleCatchSection));
+    $$('input[name="catch-status"]').forEach(r => r.addEventListener('change', toggleCatchSection));
     toggleCatchSection();
 
     // Удаление
@@ -127,6 +127,8 @@ function setupEvents() {
     // Карта
     $('#add-marker-btn').addEventListener('click', togglePlacingMarker);
     $('#map-geo-btn').addEventListener('click', mapLocateMe);
+    $('#map-search-btn').addEventListener('click', mapSearch);
+    $('#map-search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') mapSearch(); });
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
@@ -320,7 +322,7 @@ function handleFormSubmit(e) {
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
 
 // ─── Обновление ───
-function updateAll() { updateDashboard(); updateJournal(); updateStats(); }
+function updateAll() { updateDashboard(); updateJournal(); updateStats(); renderPointsList(); }
 
 function updateDashboard() {
     const list = $('#recent-catches-list');
@@ -845,6 +847,78 @@ function mapLocateMe() {
     );
 }
 
+// Поиск места на карте
+async function mapSearch() {
+    const query = $('#map-search-input').value.trim();
+    if (!query) { showToast('Введите название места', 'error'); return; }
+    if (!ymap) { showToast('Карта ещё не загрузилась', 'error'); return; }
+
+    try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=ru&format=json`);
+        const data = await res.json();
+        if (!data.results || !data.results.length) {
+            showToast('Место не найдено', 'error');
+            return;
+        }
+        const r = data.results[0];
+        ymap.setCenter([r.latitude, r.longitude], 12);
+        showToast(`📍 ${r.name}${r.admin1 ? ', ' + r.admin1 : ''}`);
+    } catch (e) {
+        showToast('Ошибка поиска', 'error');
+    }
+}
+
+// Список сохранённых точек
+function renderPointsList() {
+    const list = $('#points-list');
+    const count = $('#points-count');
+    count.textContent = mapMarkers.length;
+
+    if (!mapMarkers.length) {
+        list.innerHTML = '<p class="empty-state">Пока нет сохранённых точек</p>';
+        return;
+    }
+
+    list.innerHTML = mapMarkers.map(m => `
+        <div class="point-card" onclick="flyToPoint(${m.lat},${m.lng})">
+            <div class="point-info">
+                <div class="point-name">🐟 ${m.name}</div>
+                ${m.fish ? `<div class="point-fish">${m.fish}</div>` : ''}
+            </div>
+            <div class="point-actions">
+                <button class="btn btn-icon" onclick="event.stopPropagation();openDeletePointModal('${m.id}')" title="Удалить">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function flyToPoint(lat, lng) {
+    if (!ymap) return;
+    ymap.setCenter([lat, lng], 14);
+    // Найти и открыть балун ближайшего маркера
+    ymap.geoObjects.each(obj => {
+        if (obj.geometry && obj.geometry.getCoordinates) {
+            const c = obj.geometry.getCoordinates();
+            if (Math.abs(c[0] - lat) < 0.0001 && Math.abs(c[1] - lng) < 0.0001) {
+                obj.balloon.open();
+            }
+        }
+    });
+}
+
+function openDeletePointModal(id) {
+    if (confirm('Удалить эту точку?')) {
+        mapMarkers = mapMarkers.filter(m => m.id !== id);
+        if (ymap) {
+            ymap.geoObjects.removeAll();
+            mapMarkers.forEach(m => addPlacemark(m));
+        }
+        saveData();
+        renderPointsList();
+        showToast('Точка удалена');
+    }
+}
+
 // Построение маршрута в приложении
 function buildRoute(lat, lng, name) {
     const routeUrl = 'https://yandex.ru/maps/?rtext=' + lat + ',' + lng + '&rtt=auto&z=14';
@@ -912,3 +986,5 @@ window.openDeleteModal = openDeleteModal;
 window.selectCalendarDay = selectCalendarDay;
 window.deleteMapMarker = deleteMapMarker;
 window.buildRoute = buildRoute;
+window.flyToPoint = flyToPoint;
+window.openDeletePointModal = openDeletePointModal;

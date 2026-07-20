@@ -629,6 +629,45 @@ form { padding: 16px; }
     color: var(--text2);
 }
 
+/* Map search */
+.map-search {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.map-search .search-input { flex: 1; }
+
+/* Saved points */
+.saved-points {
+    margin-top: 20px;
+}
+.saved-points h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+.points-list {
+    display: grid;
+    gap: 8px;
+}
+.point-card {
+    background: var(--card);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: transform .15s;
+    border-left: 4px solid var(--primary);
+}
+.point-card:hover { transform: translateX(4px); }
+.point-card:active { transform: scale(.98); }
+.point-info { flex: 1; }
+.point-name { font-weight: 700; color: var(--primary); font-size: .95rem; }
+.point-fish { font-size: .8rem; color: var(--text2); margin-top: 2px; }
+.point-actions { display: flex; gap: 6px; }
+
 /* Map popups */
 .popup-title {
     font-weight: 700;
