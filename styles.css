@@ -565,63 +565,6 @@ form { padding: 16px; }
     color: var(--text2);
 }
 
-/* Water bodies */
-.water-bodies-section {
-    margin-top: 20px;
-}
-.water-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-.water-header h3 { margin: 0; }
-.water-bodies-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 10px;
-}
-.water-card {
-    background: var(--card);
-    border-radius: var(--radius-sm);
-    padding: 12px;
-    box-shadow: var(--shadow);
-    cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
-    border: 2px solid transparent;
-}
-.water-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary);
-}
-.water-card:active { transform: scale(.98); }
-.water-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-.water-name {
-    font-weight: 700;
-    color: var(--primary);
-    font-size: .95rem;
-}
-.water-region {
-    font-size: .75rem;
-    color: var(--text2);
-    background: var(--bg);
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-.water-fish {
-    font-size: .85rem;
-    color: var(--text2);
-    line-height: 1.4;
-}
-
 /* Map popups */
 .popup-title {
     font-weight: 700;

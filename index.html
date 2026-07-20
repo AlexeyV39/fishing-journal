@@ -158,16 +158,7 @@
             </div>
             <div id="map-container"></div>
             <div class="map-legend">
-                <span>🐟 Точка улова</span>
-            </div>
-
-            <!-- Список водоёмов под картой -->
-            <div class="water-bodies-section">
-                <div class="water-header">
-                    <h3>Справочник водоёмов</h3>
-                    <input type="text" id="water-search" placeholder="Поиск водоёма..." class="search-input" style="max-width:300px;">
-                </div>
-                <div id="water-bodies-list" class="water-bodies-list"></div>
+                <span>🐟 Мои точки рыбалки</span>
             </div>
         </section>
 
@@ -333,14 +324,8 @@
                 <input type="hidden" id="marker-lat">
                 <input type="hidden" id="marker-lng">
                 <div class="form-group">
-                    <label>Выбрать из справочника (необязательно)</label>
-                    <select id="water-body-select" class="sort-select">
-                        <option value="">— Свободное заполнение —</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Название водоёма *</label>
-                    <input type="text" id="marker-name" placeholder="Озеро Байкал, река Волга..." required>
+                    <label>Название *</label>
+                    <input type="text" id="marker-name" placeholder="Озеро, река, водохранилище..." required>
                 </div>
                 <div class="form-group">
                     <label>Какая рыба</label>

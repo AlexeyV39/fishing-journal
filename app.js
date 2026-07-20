@@ -4,51 +4,6 @@ const MONTHS_RU = ['Январь','Февраль','Март','Апрель','М
 const MONTHS_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const DAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
-// ─── База водоёмов ───
-const WATER_BODIES = [
-    { name: 'Озеро Байкал', lat: 53.5587, lng: 108.1650, region: 'Иркутская обл.', fish: ['Омуль', 'Нельма', 'Сиг', 'Хариус', 'Ленок', 'Таймень', 'Сиг-лещ', 'Гольян'] },
-    { name: 'Озеро Ладожское', lat: 61.0, lng: 31.0, region: 'Ленинградская обл.', fish: ['Лещ', 'Сиг', 'Судак', 'Ряпушка', 'Сельдь', 'Навага', 'Корюшка'] },
-    { name: 'Озеро Онежское', lat: 61.5, lng: 35.0, region: 'Карелия', fish: ['Лещ', 'Сиг', 'Судак', 'Ряпушка', 'Корюшка', 'Навага'] },
-    { name: 'Река Волга', lat: 56.85, lng: 45.0, region: 'Нижегородская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Жерех', 'Сом', 'Желтопёрый карась', 'Карп', 'Густера'] },
-    { name: 'Река Ока', lat: 55.0, lng: 39.0, region: 'Рязанская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Жерех', 'Сом', 'Карась', 'Густера', 'Краснопёрка'] },
-    { name: 'Река Москва', lat: 55.75, lng: 37.62, region: 'Москва', fish: ['Щука', 'Окунь', 'Плотва', 'Уклейка', 'Карась', 'Лещ', 'Густера'] },
-    { name: 'Река Клязьма', lat: 55.8, lng: 37.8, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Плотва', 'Лещ', 'Карась', 'Густера', 'Краснопёрка'] },
-    { name: 'Истринское водохранилище', lat: 55.92, lng: 36.85, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Плотва', 'Карась', 'Судак'] },
-    { name: 'Можайское водохранилище', lat: 55.6, lng: 36.0, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Плотва', 'Карась'] },
-    { name: 'Река Яуза', lat: 55.85, lng: 37.7, region: 'Москва', fish: ['Щука', 'Окунь', 'Плотва', 'Уклейка', 'Ерш'] },
-    { name: 'Река Сходня', lat: 55.95, lng: 37.25, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Плотва', 'Карась', 'Гольян'] },
-    { name: 'Река Химки', lat: 55.88, lng: 37.45, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Плотва', 'Уклейка'] },
-    { name: 'Река Пахра', lat: 55.45, lng: 37.85, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Карась', 'Плотва', 'Густера'] },
-    { name: 'Река Нара', lat: 55.4, lng: 36.8, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Карась', 'Плотва'] },
-    { name: 'Река Руза', lat: 55.7, lng: 36.2, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Плотва', 'Карась'] },
-    { name: 'Река Сетунь', lat: 55.75, lng: 37.45, region: 'Москва', fish: ['Щука', 'Окунь', 'Плотва', 'Уклейка', 'Ерш'] },
-    { name: 'Перхушковское водохранилище', lat: 55.85, lng: 37.0, region: 'Московская обл.', fish: ['Щука', 'Окунь', 'Плотва', 'Карась'] },
-    { name: 'Река Невля', lat: 56.7, lng: 60.3, region: 'Челябинская обл.', fish: ['Щука', 'Окунь', 'Плотва', 'Карась', 'Лещ'] },
-    { name: 'Река Миасс', lat: 55.05, lng: 60.1, region: 'Челябинская обл.', fish: ['Хариус', 'Форель', 'Ленок', 'Окунь', 'Щука'] },
-    { name: 'Озеро Тургояк', lat: 55.1, lng: 60.1, region: 'Челябинская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Плотва', 'Форель'] },
-    { name: 'Река Тобол', lat: 55.2, lng: 68.2, region: 'Курганская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Озёрный сиг', 'Плотва'] },
-    { name: 'Река Ишим', lat: 56.1, lng: 69.5, region: 'Тюменская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Плотва', 'Карась'] },
-    { name: 'Река Обь', lat: 55.0, lng: 83.0, region: 'Новосибирская обл.', fish: ['Судак', 'Щука', 'Омуль', 'Лещ', 'Плотва', 'Налим'] },
-    { name: 'Река Енисей', lat: 56.0, lng: 92.8, region: 'Красноярский край', fish: ['Омуль', 'Таймень', 'Ленок', 'Хариус', 'Щука', 'Судак'] },
-    { name: 'Река Лена', lat: 62.0, lng: 130.0, region: 'Якутия', fish: ['Омуль', 'Таймень', 'Ленок', 'Хариус', 'Щука'] },
-    { name: 'Река Амур', lat: 48.5, lng: 135.0, region: 'Хабаровский край', fish: ['Калуга', 'Сом', 'Лещ', 'Судак', 'Щука', 'Амурский сом'] },
-    { name: 'Река Дон', lat: 47.2, lng: 39.7, region: 'Ростовская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Сом', 'Карась', 'Густера'] },
-    { name: 'Река Кубань', lat: 45.0, lng: 38.9, region: 'Краснодарский край', fish: ['Судак', 'Щука', 'Лещ', 'Сом', 'Карась'] },
-    { name: 'Река Кавказка', lat: 43.5, lng: 44.0, region: 'Северная Осетия', fish: ['Форель', 'Хариус', 'Ленок', 'Гольян'] },
-    { name: 'Река Самара', lat: 53.2, lng: 50.1, region: 'Самарская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Карась', 'Плотва'] },
-    { name: 'Река Урал', lat: 51.8, lng: 55.0, region: 'Оренбургская обл.', fish: ['Судак', 'Щука', 'Лещ', 'Карась', 'Форель'] },
-    { name: 'Озеро Телецкое', lat: 51.5, lng: 87.5, region: 'Алтай', fish: ['Хариус', 'Форель', 'Ленок', 'Окушок'] },
-    { name: 'Река Бия', lat: 52.4, lng: 85.0, region: 'Алтай', fish: ['Хариус', 'Форель', 'Ленок', 'Окушок'] },
-    { name: 'Река Катунь', lat: 51.7, lng: 85.5, region: 'Алтай', fish: ['Хариус', 'Форель', 'Ленок', 'Гольян'] },
-    { name: 'Река Печора', lat: 63.0, lng: 56.3, region: 'Коми', fish: ['Сиг', 'Сельдь', 'Навага', 'Корюшка', 'Щука', 'Окунь'] },
-    { name: 'Река Мезень', lat: 62.2, lng: 50.0, region: 'Архангельская обл.', fish: ['Сиг', 'Сельдь', 'Корюшка', 'Щука', 'Окунь'] },
-    { name: 'Река Северная Двина', lat: 64.5, lng: 41.8, region: 'Архангельская обл.', fish: ['Сиг', 'Сельдь', 'Навага', 'Щука', 'Лещ'] },
-    { name: 'Река Неман', lat: 54.9, lng: 23.9, region: 'Калининградская обл.', fish: ['Лещ', 'Щука', 'Судак', 'Карась', 'Густера'] },
-    { name: 'Река Преголя', lat: 54.7, lng: 20.5, region: 'Калининградская обл.', fish: ['Лещ', 'Щука', 'Судак', 'Карась', 'Угорь'] },
-    { name: 'Река Вуокса', lat: 60.6, lng: 30.0, region: 'Ленинградская обл.', fish: ['Щука', 'Окунь', 'Лещ', 'Плотва', 'Судак'] },
-    { name: 'Река Свирь', lat: 60.5, lng: 34.0, region: 'Ленинградская обл.', fish: ['Лещ', 'Сиг', 'Судак', 'Щука', 'Ряпушка'] },
-];
-
 // ─── Состояние ───
 let catches = [];
 let mapMarkers = [];
@@ -170,67 +125,10 @@ function setupEvents() {
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
 
-    // Заполнить список водоёмов в селекте
-    const waterSelect = $('#water-body-select');
-    WATER_BODIES.forEach((wb, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = `${wb.name} (${wb.region})`;
-        waterSelect.appendChild(opt);
-    });
-    waterSelect.addEventListener('change', () => {
-        const idx = waterSelect.value;
-        if (idx !== '') {
-            const wb = WATER_BODIES[parseInt(idx)];
-            $('#marker-name').value = wb.name;
-            $('#marker-fish').value = wb.fish.join(', ');
-            $('#marker-desc').value = wb.region;
-        }
-    });
-
-    // Поиск по водоёмам
-    $('#water-search').addEventListener('input', renderWaterBodies);
-    renderWaterBodies();
-
     // Закрытие модалок по фону
     $('#catch-modal').addEventListener('click', (e) => { if (e.target === $('#catch-modal')) closeCatchModal(); });
     $('#delete-modal').addEventListener('click', (e) => { if (e.target === $('#delete-modal')) closeDeleteModal(); });
     $('#marker-modal').addEventListener('click', (e) => { if (e.target === $('#marker-modal')) $('#marker-modal').classList.remove('active'); });
-}
-
-// ─── Список водоёмов ───
-function renderWaterBodies() {
-    const q = ($('#water-search').value || '').toLowerCase();
-    const list = $('#water-bodies-list');
-    const filtered = WATER_BODIES.filter(wb =>
-        wb.name.toLowerCase().includes(q) ||
-        wb.region.toLowerCase().includes(q) ||
-        wb.fish.some(f => f.toLowerCase().includes(q))
-    );
-    if (!filtered.length) {
-        list.innerHTML = '<p class="empty-state">Ничего не найдено</p>';
-        return;
-    }
-    list.innerHTML = filtered.map(wb => `
-        <div class="water-card" onclick="selectWaterBody(${WATER_BODIES.indexOf(wb)})">
-            <div class="water-card-header">
-                <span class="water-name">${wb.name}</span>
-                <span class="water-region">${wb.region}</span>
-            </div>
-            <div class="water-fish">🐟 ${wb.fish.join(', ')}</div>
-        </div>
-    `).join('');
-}
-
-function selectWaterBody(idx) {
-    const wb = WATER_BODIES[idx];
-    placingMarker = true;
-    if (ymap) {
-        ymap.setCenter([wb.lat, wb.lng], 12);
-    }
-    showToast(`Добавьте точку на карте: ${wb.name}`);
-    // Подставить данные при добавлении маркера
-    window._pendingWaterBody = wb;
 }
 
 function switchTab(name) {
@@ -693,19 +591,9 @@ function createMap() {
             const coords = e.get('coords');
             $('#marker-lat').value = coords[0];
             $('#marker-lng').value = coords[1];
-            // Если выбран водоём из справочника — подставить данные
-            const wb = window._pendingWaterBody;
-            if (wb) {
-                $('#marker-name').value = wb.name;
-                $('#marker-fish').value = wb.fish.join(', ');
-                $('#marker-desc').value = wb.region;
-                window._pendingWaterBody = null;
-            } else {
-                $('#marker-name').value = '';
-                $('#marker-fish').value = '';
-                $('#marker-desc').value = '';
-            }
-            $('#water-body-select').value = '';
+            $('#marker-name').value = '';
+            $('#marker-fish').value = '';
+            $('#marker-desc').value = '';
             $('#marker-modal').classList.add('active');
         });
     });
@@ -737,7 +625,6 @@ function handleMarkerSubmit(e) {
     addPlacemark(marker);
     saveData();
     $('#marker-modal').classList.remove('active');
-    $('#water-body-select').value = '';
     showToast('Точка сохранена!');
 }
 
@@ -750,10 +637,7 @@ function addPlacemark(m) {
 
     // Информация о рыбе
     let fishInfo = '';
-    const wb = WATER_BODIES.find(w => w.name === m.name);
-    if (wb) {
-        fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + wb.fish.join(', ') + '</div>';
-    } else if (m.fish) {
+    if (m.fish) {
         fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + m.fish + '</div>';
     }
 
