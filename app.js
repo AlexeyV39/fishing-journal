@@ -806,7 +806,6 @@ function addPlacemark(m) {
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
             + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
-            + '<button onclick="buildRoute(' + m.lat + ',' + m.lng + ',\'' + m.name.replace(/'/g,"\\'") + '\')" style="display:block;padding:10px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;">🗺 Построить маршрут</button>'
             + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Открыть в Навигаторе</a>'
             + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
             + '</div>'
