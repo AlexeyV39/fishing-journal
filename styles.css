@@ -633,12 +633,43 @@ form { padding: 16px; }
 }
 
 /* Map search */
+.map-search-wrapper { position: relative; margin-bottom: 10px; }
 .map-search {
     display: flex;
     gap: 6px;
-    margin-bottom: 10px;
 }
 .map-search .search-input { flex: 1; }
+
+/* Search dropdown */
+.search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 44px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 50;
+}
+.search-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+}
+.search-result:last-child { border-bottom: none; }
+.search-result:hover { background: var(--bg); }
+.search-result-icon { font-size: 1.2rem; flex-shrink: 0; }
+.search-result-info { flex: 1; min-width: 0; }
+.search-result-name { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-desc { font-size: .75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-loading { padding: 12px; text-align: center; color: var(--text2); font-size: .85rem; }
 
 /* Map layers */
 .map-layers {

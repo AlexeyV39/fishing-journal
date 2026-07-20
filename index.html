@@ -194,9 +194,12 @@
                     <button class="btn btn-primary btn-small" id="add-marker-btn">+ Добавить точку</button>
                 </div>
             </div>
-            <div class="map-search">
-                <input type="text" id="map-search-input" placeholder="Поиск места... (деревня, река, озеро)" class="search-input">
-                <button class="btn btn-primary btn-small" id="map-search-btn">🔍</button>
+            <div class="map-search-wrapper">
+                <div class="map-search">
+                    <input type="text" id="map-search-input" placeholder="Поиск: улица, деревня, СНТ, водоём..." class="search-input" autocomplete="off">
+                    <button class="btn btn-primary btn-small" id="map-search-btn">🔍</button>
+                </div>
+                <div id="map-search-dropdown" class="search-dropdown" style="display:none;"></div>
             </div>
 
             <!-- Переключатель слоёв -->

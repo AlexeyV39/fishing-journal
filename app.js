@@ -230,8 +230,11 @@ function setupEvents() {
     // Карта
     $('#add-marker-btn').addEventListener('click', togglePlacingMarker);
     $('#map-geo-btn').addEventListener('click', mapLocateMe);
-    $('#map-search-btn').addEventListener('click', mapSearch);
-    $('#map-search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') mapSearch(); });
+    $('#map-search-btn').addEventListener('click', () => {
+        const q = $('#map-search-input').value.trim();
+        if (q.length >= 2) searchAddresses(q);
+    });
+    setupSearchAutocomplete();
     $$('.layer-btn').forEach(b => b.addEventListener('click', () => switchMapLayer(b.dataset.layer)));
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
@@ -1154,41 +1157,112 @@ function mapLocateMe() {
     );
 }
 
-// Поиск места на карте (через Open-Meteo геокодер)
-async function mapSearch() {
-    const query = $('#map-search-input').value.trim();
-    if (!query) { showToast('Введите название места', 'error'); return; }
-    if (!ymap) { showToast('Карта ещё не загрузилась', 'error'); return; }
+// Поиск места на карте (Nominatim + выпадающий список)
+let _searchTimeout = null;
+let _searchResults = [];
 
+function setupSearchAutocomplete() {
+    const input = $('#map-search-input');
+    const dropdown = $('#map-search-dropdown');
+    if (!input || !dropdown) return;
+
+    input.addEventListener('input', () => {
+        clearTimeout(_searchTimeout);
+        const query = input.value.trim();
+        if (query.length < 2) { dropdown.style.display = 'none'; return; }
+
+        dropdown.style.display = 'block';
+        dropdown.innerHTML = '<div class="search-loading">🔍 Поиск...</div>';
+
+        _searchTimeout = setTimeout(() => searchAddresses(query), 350);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (_searchResults.length > 0) selectSearchResult(_searchResults[0]);
+        }
+        if (e.key === 'Escape') dropdown.style.display = 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.map-search-wrapper')) dropdown.style.display = 'none';
+    });
+}
+
+async function searchAddresses(query) {
+    const dropdown = $('#map-search-dropdown');
     try {
-        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ru&format=json`);
+        // Ищем через Nominatim (OpenStreetMap) — поддерживает улицы, СНТ, деревни
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&accept-language=ru&addressdetails=1`);
         const data = await res.json();
-        if (!data.results || !data.results.length) {
-            showToast('Место не найдено', 'error');
+        _searchResults = data;
+
+        if (!data.length) {
+            dropdown.innerHTML = '<div class="search-loading">Ничего не найдено</div>';
             return;
         }
-        const r = data.results[0];
-        ymap.setCenter([r.latitude, r.longitude], 12);
-        // Поставить временную метку
-        if (window._searchMark) ymap.geoObjects.remove(window._searchMark);
-        const SearchLayout = ymaps.templateLayoutFactory.createClass(
-            '<div style="background:#f59e0b;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
-        );
-        window._searchMark = new ymaps.Placemark([r.latitude, r.longitude], {
-            balloonContent: '<b>' + (r.name || query) + '</b>' + (r.admin1 ? '<br>' + r.admin1 : '')
-        }, {
-            iconLayout: 'default#imageWithContent',
-            iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#f59e0b" stroke="white" stroke-width="3"/></svg>'),
-            iconImageSize: [32, 32],
-            iconImageOffset: [-16, -16],
-            iconContentOffset: [0, 0],
-            iconContentLayout: SearchLayout
-        });
-        ymap.geoObjects.add(window._searchMark);
-        showToast(`📍 ${r.name}${r.admin1 ? ', ' + r.admin1 : ''}`);
+
+        dropdown.innerHTML = data.map((r, i) => {
+            const type = getResultType(r);
+            const icon = type.icon;
+            const name = r.display_name.split(',')[0];
+            const desc = r.display_name.split(',').slice(1, 3).join(',').trim();
+            return `<div class="search-result" onclick="selectSearchResult(window._searchResults[${i}])">
+                <span class="search-result-icon">${icon}</span>
+                <div class="search-result-info">
+                    <div class="search-result-name">${name}</div>
+                    <div class="search-result-desc">${desc}</div>
+                </div>
+            </div>`;
+        }).join('');
     } catch (e) {
-        showToast('Ошибка поиска', 'error');
+        dropdown.innerHTML = '<div class="search-loading">Ошибка поиска</div>';
     }
+}
+
+function getResultType(r) {
+    const a = r.address || {};
+    if (a.waterway || a.water) return { icon: '🌊', type: 'Водоём' };
+    if (a.road || a.house_number) return { icon: '🛣', type: 'Улица' };
+    if (a.hamlet || a.village || a.neighbourhood) return { icon: '🏘', type: 'Деревня' };
+    if (a.suburb || a.quarter) return { icon: '🏙', type: 'Район' };
+    if (a.town || a.city) return { icon: '🏙', type: 'Город' };
+    if (a.state) return { icon: '📍', type: 'Регион' };
+    return { icon: '📍', type: 'Место' };
+}
+
+function selectSearchResult(r) {
+    const dropdown = $('#map-search-dropdown');
+    dropdown.style.display = 'none';
+    const input = $('#map-search-input');
+    input.value = r.display_name.split(',')[0];
+
+    if (!ymap) return;
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    ymap.setCenter([lat, lng], 15);
+
+    // Убрать старый маркер поиска
+    if (window._searchMark) ymap.geoObjects.remove(window._searchMark);
+
+    const SearchLayout = ymaps.templateLayoutFactory.createClass(
+        '<div style="background:#f59e0b;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
+    );
+    const type = getResultType(r);
+    window._searchMark = new ymaps.Placemark([lat, lng], {
+        balloonContent: `<b>${type.icon} ${r.display_name.split(',')[0]}</b><br><small style="color:#666">${r.display_name}</small>`
+    }, {
+        iconLayout: 'default#imageWithContent',
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#f59e0b" stroke="white" stroke-width="3"/></svg>'),
+        iconImageSize: [32, 32],
+        iconImageOffset: [-16, -16],
+        iconContentOffset: [0, 0],
+        iconContentLayout: SearchLayout
+    });
+    ymap.geoObjects.add(window._searchMark);
+    window._searchMark.balloon.open();
+    showToast(`${type.icon} ${r.display_name.split(',')[0]}`);
 }
 
 // Список сохранённых точек
@@ -1363,3 +1437,4 @@ window.deleteMapMarker = deleteMapMarker;
 window.buildRoute = buildRoute;
 window.flyToPoint = flyToPoint;
 window.openDeletePointModal = openDeletePointModal;
+window.selectSearchResult = selectSearchResult;
