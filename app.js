@@ -13,11 +13,9 @@ let deleteTargetId = null;
 let calendarDate = new Date();
 let selectedCalendarDate = null;
 let photoDataUrl = null;
-let map = null;
-let leafletMarkers = [];
+let ymap = null;
 let placingMarker = false;
 
-// ─── DOM ───
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -26,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
     setupEvents();
     setDefaultDate();
+    // Восстановить вкладку
+    const savedTab = localStorage.getItem(STORAGE_KEY + '_tab') || 'dashboard';
+    switchTab(savedTab);
     updateAll();
     loadWeather();
     calcMoonPhase();
@@ -36,67 +37,95 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadData() {
     try {
         const d = localStorage.getItem(STORAGE_KEY);
-        if (d) { const parsed = JSON.parse(d); catches = parsed.catches || parsed || []; }
+        if (d) {
+            const parsed = JSON.parse(d);
+            catches = Array.isArray(parsed) ? parsed : (parsed.catches || []);
+        }
         const s = localStorage.getItem(STORAGE_KEY + '_settings');
         if (s) settings = { ...settings, ...JSON.parse(s) };
         const m = localStorage.getItem(STORAGE_KEY + '_markers');
         if (m) mapMarkers = JSON.parse(m);
     } catch(e) { console.error('Load error:', e); }
 }
+
 function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ catches }));
-    localStorage.setItem(STORAGE_KEY + '_settings', JSON.stringify(settings));
-    localStorage.setItem(STORAGE_KEY + '_markers', JSON.stringify(mapMarkers));
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(catches));
+        localStorage.setItem(STORAGE_KEY + '_settings', JSON.stringify(settings));
+        localStorage.setItem(STORAGE_KEY + '_markers', JSON.stringify(mapMarkers));
+    } catch(e) {
+        console.error('Save error:', e);
+        showToast('Ошибка сохранения! Возможно, память переполнена.', 'error');
+    }
+}
+
+// ─── Toast уведомления ───
+function showToast(msg, type = 'success') {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:8px;color:#fff;font-size:.9rem;z-index:9999;transition:opacity .3s;max-width:90%;text-align:center;';
+        document.body.appendChild(toast);
+    }
+    toast.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2500);
 }
 
 // ─── События ───
 function setupEvents() {
+    // Навигация с сохранением вкладки
     $$('.nav-btn').forEach(b => b.addEventListener('click', () => {
         switchTab(b.dataset.tab);
-        if (b.dataset.tab === 'map' && !map) setTimeout(initMap, 100);
-        if (b.dataset.tab === 'map' && map) setTimeout(() => map.invalidateSize(), 100);
+        localStorage.setItem(STORAGE_KEY + '_tab', b.dataset.tab);
+        if (b.dataset.tab === 'map') setTimeout(initMap, 200);
     }));
 
+    // Уловы
     $('#add-catch-btn').addEventListener('click', openAddModal);
     $('#close-modal').addEventListener('click', closeCatchModal);
     $('#cancel-btn').addEventListener('click', closeCatchModal);
-    $('#close-delete-modal').addEventListener('click', closeDeleteModal);
-    $('#cancel-delete-btn').addEventListener('click', closeDeleteModal);
-    $('#confirm-delete-btn').addEventListener('click', confirmDelete);
     $('#catch-form').addEventListener('submit', handleFormSubmit);
     $('#catch-photo').addEventListener('change', handlePhotoUpload);
     $('#search-input').addEventListener('input', updateJournal);
     $('#sort-select').addEventListener('change', updateJournal);
 
+    // Удаление
+    $('#close-delete-modal').addEventListener('click', closeDeleteModal);
+    $('#cancel-delete-btn').addEventListener('click', closeDeleteModal);
+    $('#confirm-delete-btn').addEventListener('click', confirmDelete);
+
+    // Календарь
     $('#prev-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); });
     $('#next-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); });
 
+    // Геолокация
     $('#geo-btn').addEventListener('click', detectLocation);
-    $('#save-city').addEventListener('click', () => { settings.city = $('#default-city-input').value.trim() || 'Москва'; saveData(); loadWeather(); });
+
+    // Настройки
+    $('#save-city').addEventListener('click', () => { settings.city = $('#default-city-input').value.trim() || 'Москва'; saveData(); loadWeather(); showToast('Город сохранён'); });
     $('#retry-weather').addEventListener('click', loadWeather);
     $('#default-city-input').value = settings.city;
 
+    // Экспорт/Импорт
     $('#export-json').addEventListener('click', () => exportData('json'));
     $('#export-csv').addEventListener('click', () => exportData('csv'));
     $('#export-btn').addEventListener('click', () => exportData('json'));
     $('#import-btn').addEventListener('click', () => $('#import-file-input').click());
     $('#import-file-input').addEventListener('change', handleImport);
     $('#clear-data').addEventListener('click', () => {
-        if (confirm('Удалить ВСЕ данные? Это нельзя отменить!')) {
-            catches = []; mapMarkers = []; saveData(); updateAll();
-        }
+        if (confirm('Удалить ВСЕ данные?')) { catches = []; mapMarkers = []; saveData(); updateAll(); showToast('Данные удалены'); }
     });
 
-    // Карта: модалка маркера
-    $('#add-marker-btn').addEventListener('click', () => {
-        placingMarker = true;
-        $('#add-marker-btn').textContent = '👆 Тапните на карту';
-        $('#add-marker-btn').style.background = '#dc2626';
-    });
+    // Карта
+    $('#add-marker-btn').addEventListener('click', togglePlacingMarker);
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
 
+    // Закрытие модалок по фону
     $('#catch-modal').addEventListener('click', (e) => { if (e.target === $('#catch-modal')) closeCatchModal(); });
     $('#delete-modal').addEventListener('click', (e) => { if (e.target === $('#delete-modal')) closeDeleteModal(); });
     $('#marker-modal').addEventListener('click', (e) => { if (e.target === $('#marker-modal')) $('#marker-modal').classList.remove('active'); });
@@ -105,17 +134,21 @@ function setupEvents() {
 function switchTab(name) {
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$('.tab-content').forEach(c => c.classList.remove('active'));
-    $(`[data-tab="${name}"]`).classList.add('active');
-    $(`#${name}`).classList.add('active');
+    const btn = $(`[data-tab="${name}"]`);
+    const tab = $(`#${name}`);
+    if (btn) btn.classList.add('active');
+    if (tab) tab.classList.add('active');
 }
 
 function setDefaultDate() { $('#catch-date').value = new Date().toISOString().split('T')[0]; }
 
 // ─── Модалки ───
 function openAddModal() {
-    currentEditId = null; photoDataUrl = null;
+    currentEditId = null;
+    photoDataUrl = null;
     $('#modal-title').textContent = 'Добавить улов';
-    $('#catch-form').reset(); setDefaultDate();
+    $('#catch-form').reset();
+    setDefaultDate();
     resetPhotoPreview();
     $('#catch-modal').classList.add('active');
 }
@@ -123,7 +156,8 @@ function openAddModal() {
 function openEditModal(id) {
     const c = catches.find(x => x.id === id);
     if (!c) return;
-    currentEditId = id; photoDataUrl = c.photo || null;
+    currentEditId = id;
+    photoDataUrl = c.photo || null;
     $('#modal-title').textContent = 'Редактировать улов';
     $('#catch-id').value = id;
     $('#catch-date').value = c.date;
@@ -138,34 +172,58 @@ function openEditModal(id) {
     $('#catch-modal').classList.add('active');
 }
 
-function closeCatchModal() { $('#catch-modal').classList.remove('active'); currentEditId = null; photoDataUrl = null; }
+function closeCatchModal() {
+    $('#catch-modal').classList.remove('active');
+    currentEditId = null;
+    photoDataUrl = null;
+}
+
 function openDeleteModal(id) { deleteTargetId = id; $('#delete-modal').classList.add('active'); }
 function closeDeleteModal() { $('#delete-modal').classList.remove('active'); deleteTargetId = null; }
 function confirmDelete() {
-    if (deleteTargetId) {
-        catches = catches.filter(c => c.id !== deleteTargetId);
-        saveData(); updateAll(); closeDeleteModal();
-    }
+    if (!deleteTargetId) return;
+    catches = catches.filter(c => c.id !== deleteTargetId);
+    saveData();
+    updateAll();
+    closeDeleteModal();
+    showToast('Улов удалён');
 }
 
 // ─── Фото ───
 function handlePhotoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert('Фото слишком большое (макс 2 МБ). Сожмите фото.'); return; }
+    if (file.size > 2 * 1024 * 1024) {
+        showToast('Фото слишком большое (макс 2 МБ)', 'error');
+        return;
+    }
     const reader = new FileReader();
-    reader.onload = (ev) => { photoDataUrl = ev.target.result; $('#photo-preview').innerHTML = `<img src="${photoDataUrl}">`; };
+    reader.onload = (ev) => {
+        photoDataUrl = ev.target.result;
+        $('#photo-preview').innerHTML = `<img src="${photoDataUrl}">`;
+    };
     reader.readAsDataURL(file);
 }
-function resetPhotoPreview() { $('#photo-preview').innerHTML = '<span class="photo-icon">📷</span><span>Нажмите или перетащите</span>'; }
+
+function resetPhotoPreview() {
+    $('#photo-preview').innerHTML = '<span class="photo-icon">📷</span><span>Нажмите или перетащите</span>';
+}
 
 // ─── Форма улова ───
 function handleFormSubmit(e) {
     e.preventDefault();
+
+    const species = $('#catch-species').value.trim();
+    const location = $('#catch-location').value.trim();
+    if (!species || !location) {
+        showToast('Заполните вид рыбы и место!', 'error');
+        return;
+    }
+
     const data = {
-        date: $('#catch-date').value,
-        location: $('#catch-location').value.trim(),
-        species: $('#catch-species').value.trim(),
+        date: $('#catch-date').value || new Date().toISOString().split('T')[0],
+        location: location,
+        species: species,
         size: parseFloat($('#catch-size').value) || null,
         weight: parseFloat($('#catch-weight').value) || null,
         bait: $('#catch-bait').value.trim() || null,
@@ -176,15 +234,17 @@ function handleFormSubmit(e) {
     if (currentEditId) {
         const i = catches.findIndex(c => c.id === currentEditId);
         if (i !== -1) catches[i] = { ...catches[i], ...data };
+        showToast('Улов обновлён!');
     } else {
         data.id = genId();
         data.createdAt = Date.now();
         catches.push(data);
+        showToast('Улов сохранён!');
     }
+
     saveData();
     updateAll();
     closeCatchModal();
-    alert('Улов сохранён!');
 }
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
@@ -206,11 +266,10 @@ function updateDashboard() {
     $('#total-fish').textContent = catches.length;
     if (catches.length) {
         const sz = catches.filter(c=>c.size);
-        if (sz.length) { const m = sz.reduce((a,b)=>a.size>b.size?a:b); $('#biggest-fish').textContent = m.size+' см'; }
-        else $('#biggest-fish').textContent = '-';
-        const sp = {}; catches.forEach(c=>{ sp[c.species]=(sp[c.species]||0)+1; });
-        const top = Object.entries(sp).sort((a,b)=>b[1]-a[1])[0];
-        $('#favorite-species').textContent = top[0];
+        $('#biggest-fish').textContent = sz.length ? sz.reduce((a,b)=>a.size>b.size?a:b).size + ' см' : '-';
+        const sp = {};
+        catches.forEach(c=>{ sp[c.species]=(sp[c.species]||0)+1; });
+        $('#favorite-species').textContent = Object.entries(sp).sort((a,b)=>b[1]-a[1])[0][0];
     } else {
         $('#biggest-fish').textContent = '-';
         $('#favorite-species').textContent = '-';
@@ -252,17 +311,14 @@ function updateJournal() {
 
 // ─── Статистика ───
 function updateStats() { updateMonthlyChart(); updateSpeciesChart(); updateLocationsChart(); updateSizeChart(); }
-
 function updateMonthlyChart() {
     const el = $('#monthly-chart');
     if (!catches.length) { el.innerHTML = '<p class="empty-state">Недостаточно данных</p>'; return; }
-    const m = {};
-    catches.forEach(c => { const d=new Date(c.date); const k=`${d.getFullYear()}-${d.getMonth()}`; m[k]=(m[k]||0)+1; });
+    const m = {}; catches.forEach(c => { const d=new Date(c.date); const k=`${d.getFullYear()}-${d.getMonth()}`; m[k]=(m[k]||0)+1; });
     const sorted = Object.entries(m).sort((a,b)=>{ const [yA,mA]=a[0].split('-').map(Number); const [yB,mB]=b[0].split('-').map(Number); return (yB*12+mB)-(yA*12+mA); }).slice(0,8);
     const max = Math.max(...sorted.map(x=>x[1]));
     el.innerHTML = `<div class="bar-chart">${sorted.map(([k,v])=>{ const [y,mo]=k.split('-').map(Number); return `<div class="bar-item"><span class="bar-label">${MONTHS_SHORT[mo]} ${y}</span><div class="bar"><div class="bar-fill" style="width:${(v/max)*100}%">${v}</div></div></div>`; }).join('')}</div>`;
 }
-
 function updateSpeciesChart() {
     const el = $('#species-chart');
     if (!catches.length) { el.innerHTML = '<p class="empty-state">Недостаточно данных</p>'; return; }
@@ -271,7 +327,6 @@ function updateSpeciesChart() {
     const max = Math.max(...sorted.map(x=>x[1]));
     el.innerHTML = `<div class="bar-chart">${sorted.map(([s,v])=>`<div class="bar-item"><span class="bar-label">${fishIcon(s)} ${s}</span><div class="bar"><div class="bar-fill" style="width:${(v/max)*100}%">${v}</div></div></div>`).join('')}</div>`;
 }
-
 function updateLocationsChart() {
     const el = $('#locations-chart');
     if (!catches.length) { el.innerHTML = '<p class="empty-state">Недостаточно данных</p>'; return; }
@@ -280,13 +335,11 @@ function updateLocationsChart() {
     const max = Math.max(...sorted.map(x=>x[1]));
     el.innerHTML = `<div class="bar-chart">${sorted.map(([l,v])=>`<div class="bar-item"><span class="bar-label">${l}</span><div class="bar"><div class="bar-fill" style="width:${(v/max)*100}%">${v}</div></div></div>`).join('')}</div>`;
 }
-
 function updateSizeChart() {
     const el = $('#size-chart');
-    const withSize = catches.filter(c=>c.size);
-    if (withSize.length < 2) { el.innerHTML = '<p class="empty-state">Недостаточно данных</p>'; return; }
-    const m = {};
-    withSize.forEach(c => { const d=new Date(c.date); const k=`${d.getFullYear()}-${d.getMonth()}`; if(!m[k]) m[k]=[]; m[k].push(c.size); });
+    const ws = catches.filter(c=>c.size);
+    if (ws.length < 2) { el.innerHTML = '<p class="empty-state">Недостаточно данных</p>'; return; }
+    const m = {}; ws.forEach(c => { const d=new Date(c.date); const k=`${d.getFullYear()}-${d.getMonth()}`; if(!m[k]) m[k]=[]; m[k].push(c.size); });
     const sorted = Object.entries(m).sort((a,b)=>{ const [yA,mA]=a[0].split('-').map(Number); const [yB,mB]=b[0].split('-').map(Number); return (yB*12+mB)-(yA*12+mA); }).slice(0,8);
     const max = Math.max(...sorted.map(([,v])=>Math.max(...v)));
     el.innerHTML = `<div class="bar-chart">${sorted.map(([k,v])=>{ const [y,mo]=k.split('-').map(Number); const avg=(v.reduce((a,b)=>a+b,0)/v.length).toFixed(0); return `<div class="bar-item"><span class="bar-label">${MONTHS_SHORT[mo]} ${y}</span><div class="bar"><div class="bar-fill" style="width:${(Math.max(...v)/max)*100}%">~${avg} см</div></div></div>`; }).join('')}</div>`;
@@ -298,20 +351,15 @@ async function loadWeather() {
     $('#weather-info').style.display = 'none';
     $('#weather-params').style.display = 'none';
     $('#weather-error').style.display = 'none';
-
     try {
-        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city)}&count=1&language=ru&format=json`;
-        const geoRes = await fetch(geoUrl);
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city)}&count=1&language=ru&format=json`);
         const geoData = await geoRes.json();
         if (!geoData.results || !geoData.results.length) throw new Error(`Город "${settings.city}" не найден`);
         const { latitude: lat, longitude: lon } = geoData.results[0];
-
-        const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`;
-        const wRes = await fetch(wUrl);
-        if (!wRes.ok) throw new Error('Ошибка API погоды');
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`);
+        if (!wRes.ok) throw new Error('Ошибка API');
         const data = await wRes.json();
         const cur = data.current;
-
         $('#weather-icon').textContent = wmoToEmoji(cur.weather_code);
         $('#weather-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
         $('#weather-desc').textContent = wmoToText(cur.weather_code);
@@ -319,14 +367,11 @@ async function loadWeather() {
         $('#wind-speed').textContent = `${cur.wind_speed_10m} км/ч`;
         $('#humidity').textContent = `${cur.relative_humidity_2m}%`;
         $('#pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-
         $('#weather-loading').style.display = 'none';
         $('#weather-info').style.display = 'flex';
         $('#weather-params').style.display = 'grid';
-
         updateForecastFromWeather(cur);
     } catch (e) {
-        console.error('Weather error:', e);
         $('#weather-loading').style.display = 'none';
         $('#weather-error').style.display = 'block';
         $('#weather-error p').textContent = `Ошибка: ${e.message}`;
@@ -337,27 +382,19 @@ async function loadWeather() {
 async function detectLocation() {
     const btn = $('#geo-btn');
     if (!navigator.geolocation) { alert('Геолокация не поддерживается'); return; }
-
     btn.classList.add('loading');
     btn.textContent = '⏳ Определение...';
-
     try {
         const pos = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
         });
         const { latitude: lat, longitude: lon } = pos.coords;
-
-        // Обратное геокодирование через Nominatim (OpenStreetMap)
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ru`);
         const geoData = await geoRes.json();
-        const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.county || geoData.address?.state || 'Москва';
-
-        // Погода по координатам
-        const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`;
-        const wRes = await fetch(wUrl);
+        const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.state || 'Москва';
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`);
         const data = await wRes.json();
         const cur = data.current;
-
         $('#weather-icon').textContent = wmoToEmoji(cur.weather_code);
         $('#weather-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
         $('#weather-desc').textContent = wmoToText(cur.weather_code);
@@ -365,73 +402,45 @@ async function detectLocation() {
         $('#wind-speed').textContent = `${cur.wind_speed_10m} км/ч`;
         $('#humidity').textContent = `${cur.relative_humidity_2m}%`;
         $('#pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-
         $('#weather-loading').style.display = 'none';
         $('#weather-info').style.display = 'flex';
         $('#weather-params').style.display = 'grid';
         $('#weather-error').style.display = 'none';
-
         updateForecastFromWeather(cur);
-
         settings.city = city;
         saveData();
         $('#default-city-input').value = city;
+        showToast(`Определено: ${city}`);
     } catch (e) {
-        console.error('Geo error:', e);
         let msg = 'Не удалось определить местоположение';
-        if (e.code === 1) msg = 'Разрешите доступ к геолокации в настройках браузера';
+        if (e.code === 1) msg = 'Разрешите доступ к геолокации';
         alert(msg);
     }
     btn.classList.remove('loading');
     btn.textContent = '📍 Моя локация';
 }
 
-function wmoToEmoji(code) {
-    if (code === 0) return '☀️';
-    if (code <= 2) return '⛅';
-    if (code === 3) return '☁️';
-    if (code === 45 || code === 48) return '🌫️';
-    if (code >= 51 && code <= 67) return '🌧️';
-    if (code >= 71 && code <= 77) return '❄️';
-    if (code >= 80 && code <= 82) return '🌦️';
-    if (code >= 85) return '❄️';
-    if (code >= 95) return '⛈️';
-    return '🌤️';
-}
-function wmoToText(code) {
-    if (code === 0) return 'Ясно';
-    if (code <= 2) return 'Малооблачно';
-    if (code === 3) return 'Пасмурно';
-    if (code === 45 || code === 48) return 'Туман';
-    if (code >= 51 && code <= 55) return 'Морось';
-    if (code >= 61 && code <= 65) return 'Дождь';
-    if (code >= 71 && code <= 75) return 'Снег';
-    if (code >= 80 && code <= 82) return 'Ливень';
-    if (code >= 95) return 'Гроза';
-    return 'Неизвестно';
-}
+function wmoToEmoji(c) { if(c===0)return'☀️';if(c<=2)return'⛅';if(c===3)return'☁️';if(c===45||c===48)return'🌫️';if(c>=51&&c<=67)return'🌧️';if(c>=71&&c<=77)return'❄️';if(c>=80&&c<=82)return'🌦️';if(c>=85)return'❄️';if(c>=95)return'⛈️';return'🌤️'; }
+function wmoToText(c) { if(c===0)return'Ясно';if(c<=2)return'Малооблачно';if(c===3)return'Пасмурно';if(c===45||c===48)return'Туман';if(c>=51&&c<=55)return'Морось';if(c>=61&&c<=65)return'Дождь';if(c>=71&&c<=75)return'Снег';if(c>=80&&c<=82)return'Ливень';if(c>=95)return'Гроза';return'Неизвестно'; }
 
 function updateForecastFromWeather(cur) {
-    let factor = 1.0;
-    if (cur.temperature_2m < 5 || cur.temperature_2m > 30) factor *= 0.6;
-    else if (cur.temperature_2m >= 10 && cur.temperature_2m <= 22) factor *= 1.1;
-    if (cur.wind_speed_10m > 25) factor *= 0.5;
-    else if (cur.wind_speed_10m > 15) factor *= 0.8;
-    if (cur.relative_humidity_2m < 40 || cur.relative_humidity_2m > 90) factor *= 0.7;
-    if (cur.weather_code >= 61) factor *= 0.7;
-    if (cur.weather_code >= 95) factor *= 0.4;
-
+    let f = 1.0;
+    if (cur.temperature_2m < 5 || cur.temperature_2m > 30) f *= 0.6;
+    else if (cur.temperature_2m >= 10 && cur.temperature_2m <= 22) f *= 1.1;
+    if (cur.wind_speed_10m > 25) f *= 0.5; else if (cur.wind_speed_10m > 15) f *= 0.8;
+    if (cur.relative_humidity_2m < 40 || cur.relative_humidity_2m > 90) f *= 0.7;
+    if (cur.weather_code >= 61) f *= 0.7;
+    if (cur.weather_code >= 95) f *= 0.4;
     ['morning','day','evening','night'].forEach(id => {
-        const bar = $(`#bar-${id}`);
-        const rating = $(`#forecast-${id}`);
-        const curWidth = parseInt(bar.style.width) || 50;
-        const newWidth = Math.min(100, Math.round(curWidth * factor));
-        bar.style.width = newWidth + '%';
+        const bar = $(`#bar-${id}`), rating = $(`#forecast-${id}`);
+        const curW = parseInt(bar.style.width) || 50;
+        const newW = Math.min(100, Math.round(curW * f));
+        bar.style.width = newW + '%';
         let cls, text;
-        if (newWidth >= 75) { cls = 'excellent'; text = 'Отлично'; }
-        else if (newWidth >= 55) { cls = 'good'; text = 'Хорошо'; }
-        else if (newWidth >= 35) { cls = 'medium'; text = 'Средне'; }
-        else { cls = 'bad'; text = 'Слабо'; }
+        if (newW >= 75) { cls='excellent'; text='Отлично'; }
+        else if (newW >= 55) { cls='good'; text='Хорошо'; }
+        else if (newW >= 35) { cls='medium'; text='Средне'; }
+        else { cls='bad'; text='Слабо'; }
         bar.className = 'forecast-fill ' + cls;
         rating.className = 'forecast-rating ' + cls;
         rating.textContent = text;
@@ -440,33 +449,23 @@ function updateForecastFromWeather(cur) {
 
 // ─── Прогноз клёва ───
 function updateForecast() {
-    const moon = getMoonPhase(new Date());
-    const month = new Date().getMonth();
-    const moonFactor = getMoonFactor(moon);
-    const seasonFactor = getSeasonFactor(month);
-    const timeFactor = (h) => {
-        if (h >= 5 && h < 9) return 0.9;
-        if (h >= 9 && h < 14) return 0.5;
-        if (h >= 14 && h < 18) return 0.6;
-        if (h >= 18 && h < 22) return 0.85;
-        return 0.3;
-    };
+    const moon = getMoonPhase(new Date()), month = new Date().getMonth();
+    const mf = getMoonFactor(moon), sf = getSeasonFactor(month);
+    const tf = (h) => { if(h>=5&&h<9)return 0.9; if(h>=9&&h<14)return 0.5; if(h>=14&&h<18)return 0.6; if(h>=18&&h<22)return 0.85; return 0.3; };
     [{id:'morning',h:7},{id:'day',h:12},{id:'evening',h:19},{id:'night',h:1}].forEach(p => {
-        const score = Math.min(1, moonFactor * seasonFactor * timeFactor(p.h));
-        const pct = Math.round(score * 100);
+        const pct = Math.round(Math.min(1, mf * sf * tf(p.h)) * 100);
         let rating, cls;
-        if (pct >= 75) { rating = 'Отлично'; cls = 'excellent'; }
-        else if (pct >= 55) { rating = 'Хорошо'; cls = 'good'; }
-        else if (pct >= 35) { rating = 'Средне'; cls = 'medium'; }
-        else { rating = 'Слабо'; cls = 'bad'; }
+        if (pct >= 75) { rating='Отлично'; cls='excellent'; }
+        else if (pct >= 55) { rating='Хорошо'; cls='good'; }
+        else if (pct >= 35) { rating='Средне'; cls='medium'; }
+        else { rating='Слабо'; cls='bad'; }
         $(`#forecast-${p.id}`).textContent = rating;
         $(`#forecast-${p.id}`).className = 'forecast-rating ' + cls;
         $(`#bar-${p.id}`).style.width = pct + '%';
         $(`#bar-${p.id}`).className = 'forecast-fill ' + cls;
     });
 }
-
-function getMoonFactor(p) { if (p<0.1||p>0.9) return 0.7; if (p>=0.45&&p<=0.55) return 1.0; if (p>=0.2&&p<=0.3) return 0.9; if (p>=0.7&&p<=0.8) return 0.85; return 0.6; }
+function getMoonFactor(p) { if(p<0.1||p>0.9)return 0.7; if(p>=0.45&&p<=0.55)return 1.0; if(p>=0.2&&p<=0.3)return 0.9; if(p>=0.7&&p<=0.8)return 0.85; return 0.6; }
 function getSeasonFactor(m) { return [0.2,0.2,0.3,0.5,0.7,0.9,1.0,0.95,0.8,0.6,0.3,0.2][m]; }
 
 function calcMoonPhase() {
@@ -479,13 +478,12 @@ function calcMoonPhase() {
 }
 
 function getMoonPhase(date) {
-    const year = date.getFullYear(), month = date.getMonth()+1, day = date.getDate();
-    let c=0, e=0;
-    if (month<3) { c=year-1; e=month+12; } else { c=year; e=month; }
-    const a=Math.floor(c/100), b=Math.floor(a/4), f=Math.floor(8*(a+2)/25), g=Math.floor((c-b+f+30)/4);
-    const jd=Math.floor(365.25*(c+4716))+Math.floor(30.6001*(e+1))+day+g-1524.5;
-    const d=jd-2451549.5;
-    return (d/29.53059)-(Math.floor(d/29.53059));
+    const y=date.getFullYear(), m=date.getMonth()+1, d=date.getDate();
+    let c=0,e=0; if(m<3){c=y-1;e=m+12;}else{c=y;e=m;}
+    const a=Math.floor(c/100),b=Math.floor(a/4),f=Math.floor(8*(a+2)/25),g=Math.floor((c-b+f+30)/4);
+    const jd=Math.floor(365.25*(c+4716))+Math.floor(30.6001*(e+1))+d+g-1524.5;
+    const days=jd-2451549.5;
+    return (days/29.53059)-(Math.floor(days/29.53059));
 }
 
 // ─── Календарь клёва ───
@@ -495,9 +493,8 @@ function renderCalendar() {
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
     DAYS_RU.forEach(d => { grid.innerHTML += `<div class="cal-header">${d}</div>`; });
-    const firstDay = new Date(year, month, 1).getDay();
+    const startDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month+1, 0).getDate();
-    const startDay = (firstDay+6)%7;
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
     for (let i=0; i<startDay; i++) grid.innerHTML += `<div class="cal-day empty"></div>`;
@@ -507,7 +504,6 @@ function renderCalendar() {
         const isToday = dateStr === todayStr;
         const isSelected = selectedCalendarDate === dateStr;
         const rating = getDayRating(date);
-        const moonEmoji = getDayMoonEmoji(date);
         let cls = 'cal-day';
         if (isToday) cls += ' today';
         if (isSelected) cls += ' selected';
@@ -515,7 +511,7 @@ function renderCalendar() {
         else if (rating >= 55) cls += ' good';
         else if (rating >= 35) cls += ' medium';
         else cls += ' bad';
-        grid.innerHTML += `<div class="${cls}" onclick="selectCalendarDay(${year},${month},${d})">${d}<span class="moon-emoji">${moonEmoji}</span></div>`;
+        grid.innerHTML += `<div class="${cls}" onclick="selectCalendarDay(${year},${month},${d})">${d}<span class="moon-emoji">${getDayMoonEmoji(date)}</span></div>`;
     }
 }
 
@@ -524,46 +520,71 @@ function selectCalendarDay(y,m,d) {
     renderCalendar();
     showDayTips(new Date(y,m,d));
 }
-
 function getDayRating(date) { return Math.round(getMoonFactor(getMoonPhase(date)) * getSeasonFactor(date.getMonth()) * 100); }
-function getDayMoonEmoji(date) { const p=getMoonPhase(date); if(p<0.1||p>0.9) return '🌑'; if(p<0.25) return '🌒'; if(p<0.5) return '🌓'; if(p<0.75) return '🌔'; return '🌕'; }
-
+function getDayMoonEmoji(date) { const p=getMoonPhase(date); if(p<0.1||p>0.9)return'🌑'; if(p<0.25)return'🌒'; if(p<0.5)return'🌓'; if(p<0.75)return'🌔'; return'🌕'; }
 function showDayTips(date) {
-    const moon = getMoonPhase(date), month = date.getMonth(), rating = getDayRating(date);
-    let advice = rating >= 75 ? 'Отличный день! ' : rating >= 55 ? 'Хороший день. ' : rating >= 35 ? 'Средний день. ' : 'Сложный день. ';
-    if (moon < 0.1 || moon > 0.9) advice += 'Новолуние — рыбы менее активны, пробуйте мелкие приманки.';
-    else if (moon >= 0.45 && moon <= 0.55) advice += 'Полнолуние — рыбы активны, крупные приманки.';
-    else if (month >= 2 && month <= 4) advice += 'Весна — рыба на нересте, будьте осторожны.';
-    else if (month >= 5 && month <= 7) advice += 'Лучшее время — раннее утро и вечер.';
-    else if (month >= 8 && month <= 10) advice += 'Осень — рыба активно питается перед зимой.';
-    else advice += 'Зима — ловля на мотыля и бутерброды.';
-    $('#tips-text').textContent = advice;
+    const moon=getMoonPhase(date), month=date.getMonth(), rating=getDayRating(date);
+    let a = rating>=75?'Отличный день! ':rating>=55?'Хороший день. ':rating>=35?'Средний день. ':'Сложный день. ';
+    if(moon<0.1||moon>0.9) a+='Новолуние — мелкие приманки.';
+    else if(moon>=0.45&&moon<=0.55) a+='Полнолуние — рыбы активны.';
+    else if(month>=2&&month<=4) a+='Весна — будьте осторожны с запретами.';
+    else if(month>=5&&month<=7) a+='Лучшее время — утро и вечер.';
+    else if(month>=8&&month<=10) a+='Осень — рыба активно питается.';
+    else a+='Зима — ловля на мотыля.';
+    $('#tips-text').textContent = a;
 }
 
-// ─── Карта (Leaflet + OpenStreetMap) ───
+// ─── Яндекс Карты ───
 function initMap() {
-    if (map) return;
-    map = L.map('map-container').setView([55.7558, 37.6173], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 18
-    }).addTo(map);
+    if (ymap) { ymap.container.fitSize(); return; }
+    if (typeof ymaps === 'undefined') {
+        // Загрузить API Яндекс Карт
+        const script = document.createElement('script');
+        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU';
+        script.onload = () => createMap();
+        document.head.appendChild(script);
+    } else {
+        createMap();
+    }
+}
 
-    // Загрузить сохранённые маркеры
-    mapMarkers.forEach(m => addMarkerToMap(m));
+function createMap() {
+    ymaps.ready(() => {
+        ymap = new ymaps.Map('map-container', {
+            center: [55.7558, 37.6173],
+            zoom: 10,
+            controls: ['zoomControl', 'geolocationControl']
+        });
 
-    // Клик по карте
-    map.on('click', (e) => {
-        if (!placingMarker) return;
-        placingMarker = false;
+        // Загрузить сохранённые маркеры
+        mapMarkers.forEach(m => addPlacemark(m));
+
+        // Клик по карте для добавления точки
+        ymap.events.add('click', (e) => {
+            if (!placingMarker) return;
+            placingMarker = false;
+            $('#add-marker-btn').textContent = '📍 Добавить точку';
+            $('#add-marker-btn').style.background = '';
+            const coords = e.get('coords');
+            $('#marker-lat').value = coords[0];
+            $('#marker-lng').value = coords[1];
+            $('#marker-name').value = '';
+            $('#marker-desc').value = '';
+            $('#marker-modal').classList.add('active');
+        });
+    });
+}
+
+function togglePlacingMarker() {
+    placingMarker = !placingMarker;
+    if (placingMarker) {
+        $('#add-marker-btn').textContent = '👆 Тапните на карту';
+        $('#add-marker-btn').style.background = '#dc2626';
+        showToast('Тапните на карту, чтобы поставить точку');
+    } else {
         $('#add-marker-btn').textContent = '📍 Добавить точку';
         $('#add-marker-btn').style.background = '';
-        $('#marker-lat').value = e.latlng.lat;
-        $('#marker-lng').value = e.latlng.lng;
-        $('#marker-name').value = '';
-        $('#marker-desc').value = '';
-        $('#marker-modal').classList.add('active');
-    });
+    }
 }
 
 function handleMarkerSubmit(e) {
@@ -576,34 +597,46 @@ function handleMarkerSubmit(e) {
         desc: $('#marker-desc').value.trim()
     };
     mapMarkers.push(marker);
-    addMarkerToMap(marker);
+    addPlacemark(marker);
     saveData();
     $('#marker-modal').classList.remove('active');
+    showToast('Точка сохранена!');
 }
 
-function addMarkerToMap(m) {
-    if (!map) return;
-    const icon = L.divIcon({
-        className: '',
-        html: '<div style="font-size:24px;text-shadow:1px 1px 2px rgba(0,0,0,.3)">🐟</div>',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
+function addPlacemark(m) {
+    if (!ymap) return;
+    const placemark = new ymaps.Placemark([m.lat, m.lng], {
+        balloonContent: `
+            <div class="popup-title">${m.name}</div>
+            ${m.desc ? `<div class="popup-desc">${m.desc}</div>` : ''}
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+                <a href="https://yandex.ru/maps/?ll=${m.lng},${m.lat}&z=15&pt=${m.lng},${m.lat},pm2rdm"
+                   target="_blank"
+                   style="display:inline-block;padding:4px 10px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none;font-size:.8rem;">
+                   🗺 Открыть в Яндекс.Картах
+                </a>
+                <button onclick="deleteMapMarker('${m.id}')"
+                        style="padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;">
+                   🗑 Удалить
+                </button>
+            </div>
+        `
+    }, {
+        preset: 'islands#redDotIcon'
     });
-    const marker = L.marker([m.lat, m.lng], { icon }).addTo(map);
-    marker.bindPopup(`
-        <div class="popup-title">${m.name}</div>
-        ${m.desc ? `<div class="popup-desc">${m.desc}</div>` : ''}
-        <button class="popup-delete" onclick="deleteMapMarker('${m.id}')">Удалить</button>
-    `);
-    leafletMarkers.push({ id: m.id, leaflet: marker });
+    ymap.geoObjects.add(placemark);
 }
 
 function deleteMapMarker(id) {
     mapMarkers = mapMarkers.filter(m => m.id !== id);
-    const lm = leafletMarkers.find(x => x.id === id);
-    if (lm) { map.removeLayer(lm.leaflet); leafletMarkers = leafletMarkers.filter(x => x.id !== id); }
+    // Перерисовать все маркеры
+    if (ymap) {
+        ymap.geoObjects.removeAll();
+        mapMarkers.forEach(m => addPlacemark(m));
+    }
     saveData();
-    map.closePopup();
+    ymap && ymap.balloon.close();
+    showToast('Точка удалена');
 }
 
 // ─── Экспорт/Импорт ───
@@ -611,22 +644,22 @@ function exportData(format) {
     if (!catches.length) { alert('Нет данных для экспорта'); return; }
     let content, filename, type;
     if (format === 'csv') {
-        const headers = ['Дата','Место','Вид рыбы','Размер (см)','Вес (кг)','Приманка','Заметки'];
+        const headers = ['Дата','Место','Вид рыбы','Размер','Вес','Приманка','Заметки'];
         const rows = catches.map(c => [c.date,c.location,c.species,c.size||'',c.weight||'',c.bait||'',c.notes||''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
         content = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
         filename = `fishing_${new Date().toISOString().slice(0,10)}.csv`;
         type = 'text/csv;charset=utf-8';
     } else {
-        content = JSON.stringify({ version:2, exportDate: new Date().toISOString(), catches, markers: mapMarkers }, null, 2);
+        content = JSON.stringify({ version:2, catches, markers: mapMarkers }, null, 2);
         filename = `fishing_${new Date().toISOString().slice(0,10)}.json`;
         type = 'application/json';
     }
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
+    const a = document.createElement('a'); a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showToast('Файл скачан');
 }
 
 function handleImport(e) {
@@ -636,18 +669,17 @@ function handleImport(e) {
     reader.onload = (ev) => {
         try {
             const data = JSON.parse(ev.target.result);
-            const imported = data.catches || data;
+            const imported = data.catches || (Array.isArray(data) ? data : []);
             if (!Array.isArray(imported)) throw new Error('Неверный формат');
-            if (confirm(`Импортировать ${imported.length} уловов?`)) {
-                const ids = new Set(catches.map(c=>c.id));
-                imported.forEach(c => { if (!ids.has(c.id)) catches.push(c); });
-                if (data.markers) {
-                    const mIds = new Set(mapMarkers.map(m=>m.id));
-                    data.markers.forEach(m => { if (!mIds.has(m.id)) mapMarkers.push(m); });
-                }
-                saveData(); updateAll();
-                alert('Импорт завершён!');
+            const ids = new Set(catches.map(c=>c.id));
+            let count = 0;
+            imported.forEach(c => { if (!ids.has(c.id)) { catches.push(c); count++; } });
+            if (data.markers) {
+                const mIds = new Set(mapMarkers.map(m=>m.id));
+                data.markers.forEach(m => { if (!mIds.has(m.id)) mapMarkers.push(m); });
             }
+            saveData(); updateAll();
+            showToast(`Импортировано: ${count} уловов`);
         } catch(err) { alert('Ошибка: ' + err.message); }
     };
     reader.readAsText(file);
@@ -658,7 +690,6 @@ function handleImport(e) {
 function fmtDate(d) { return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short', year:'numeric' }); }
 function fishIcon(s) { const l=(s||'').toLowerCase(); return {окунь:'🐟',щука:'🐟',карась:'🐟',лещ:'🐟',судак:'🐟',плотва:'🐟',налим:'🐟',форель:'🐟',сом:'🐟',язь:'🐟',ерш:'🐟',линь:'🐟',карп:'🐟'}[l] || '🐠'; }
 
-// ─── Глобальные функции ───
 window.openEditModal = openEditModal;
 window.openDeleteModal = openDeleteModal;
 window.selectCalendarDay = selectCalendarDay;

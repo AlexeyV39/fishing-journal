@@ -563,13 +563,7 @@ form { padding: 16px; }
     color: var(--text2);
 }
 
-.leaflet-popup-content-wrapper {
-    border-radius: var(--radius-sm) !important;
-}
-.leaflet-popup-content {
-    margin: 10px 14px !important;
-    font-family: inherit !important;
-}
+/* Map popups */
 .popup-title {
     font-weight: 700;
     font-size: 1rem;
@@ -578,16 +572,7 @@ form { padding: 16px; }
 .popup-desc {
     font-size: .85rem;
     color: var(--text2);
-}
-.popup-delete {
-    margin-top: 6px;
-    padding: 4px 10px;
-    background: var(--danger);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: .8rem;
+    margin-bottom: 4px;
 }
 
 /* Responsive */
