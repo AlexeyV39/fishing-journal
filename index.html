@@ -16,6 +16,7 @@
         <nav class="nav">
             <button class="nav-btn active" data-tab="dashboard">Дашборд</button>
             <button class="nav-btn" data-tab="journal">Уловы</button>
+            <button class="nav-btn" data-tab="fishguide">🐟 Рыбы</button>
             <button class="nav-btn" data-tab="map">Карта</button>
             <button class="nav-btn" data-tab="calendar">Календарь</button>
             <button class="nav-btn" data-tab="stats">Статистика</button>
@@ -167,6 +168,21 @@
             </div>
         </section>
 
+        <!-- Справочник рыб -->
+        <section id="fishguide" class="tab-content">
+            <h2>Справочник рыб</h2>
+            <div class="fishguide-filters">
+                <input type="text" id="fish-search" placeholder="Поиск рыбы..." class="search-input">
+                <select id="fish-season-filter" class="sort-select">
+                    <option value="">Все сезоны</option>
+                    <option value="current">Сейчас активны</option>
+                    <option value="summer">Лето</option>
+                    <option value="winter">Зима</option>
+                </select>
+            </div>
+            <div id="fish-list" class="fish-list"></div>
+        </section>
+
         <!-- Карта -->
         <section id="map" class="tab-content">
             <div class="map-header">
@@ -187,7 +203,6 @@
                 <button class="layer-btn active" data-layer="map" id="layer-map">🗺 Карта</button>
                 <button class="layer-btn" data-layer="satellite" id="layer-satellite">🛰 Спутник</button>
                 <button class="layer-btn" data-layer="hybrid" id="layer-hybrid">🌐 Гибрид</button>
-                <button class="layer-btn" data-layer="depth" id="layer-depth">🌊 Глубины</button>
             </div>
 
             <div id="map-container"></div>

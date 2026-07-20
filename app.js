@@ -26,6 +26,51 @@ const FISH_DB = [
     { name: 'Густера', emoji: '🐟', minSize: 0, season: 'Апрель — Октябрь', months: [3,4,5,6,7,8,9], tackle: ['Поплавочная удочка', 'Фидер'], bait: ['Мотыль', 'Опарыш', 'Тесто'], desc: 'Стайная рыба. Держится на средней глубине.' },
 ];
 
+// ─── Справочник рыб ───
+function renderFishGuide() {
+    const searchVal = ($('#fish-search')?.value || '').toLowerCase();
+    const seasonFilter = $('#fish-season-filter')?.value || '';
+    const currentMonth = new Date().getMonth();
+    const list = $('#fish-list');
+    if (!list) return;
+
+    let filtered = FISH_DB.filter(f => {
+        if (searchVal && !f.name.toLowerCase().includes(searchVal)) return false;
+        if (seasonFilter === 'current' && !f.months.includes(currentMonth)) return false;
+        if (seasonFilter === 'winter' && ![0,1,2,10,11].some(m => f.months.includes(m))) return false;
+        if (seasonFilter === 'summer' && ![5,6,7,8].some(m => f.months.includes(m))) return false;
+        return true;
+    });
+
+    if (!filtered.length) {
+        list.innerHTML = '<p class="empty-state">Рыба не найдена</p>';
+        return;
+    }
+
+    list.innerHTML = filtered.map(f => {
+        const isActive = f.months.includes(currentMonth);
+        return `
+        <div class="fish-card" onclick="this.classList.toggle('expanded')">
+            <div class="fish-card-header">
+                <span class="fish-card-emoji">${f.emoji}</span>
+                <div>
+                    <div class="fish-card-name">${f.name}</div>
+                    <span class="fish-card-season ${isActive ? 'active' : 'inactive'}">${isActive ? '✓ Активна' : '✗ Неактивна'}</span>
+                </div>
+            </div>
+            <div class="fish-card-details">
+                <div>📏 Мин. размер: <b>${f.minSize} см</b></div>
+                <div>📅 ${f.season}</div>
+                <div>🎣 ${f.tackle.join(', ')}</div>
+                <div>🪝 ${f.bait.join(', ')}</div>
+            </div>
+            <div class="fish-card-full">
+                <p class="fish-card-desc">${f.desc}</p>
+            </div>
+        </div>`;
+    }).join('');
+}
+
 // ─── Состояние ───
 let catches = [];
 let mapMarkers = [];
@@ -114,6 +159,10 @@ function setupEvents() {
     $('#catch-photo').addEventListener('change', handlePhotoUpload);
     $('#search-input').addEventListener('input', updateJournal);
     $('#sort-select').addEventListener('change', updateJournal);
+
+    // Справочник рыб
+    if ($('#fish-search')) $('#fish-search').addEventListener('input', renderFishGuide);
+    if ($('#fish-season-filter')) $('#fish-season-filter').addEventListener('change', renderFishGuide);
 
     // Показать/скрыть секцию улова
     $$('input[name="catch-status"]').forEach(r => r.addEventListener('change', toggleCatchSection));
@@ -345,7 +394,7 @@ function handleFormSubmit(e) {
 function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
 
 // ─── Обновление ───
-function updateAll() { updateDashboard(); updateJournal(); updateStats(); renderPointsList(); }
+function updateAll() { updateDashboard(); updateJournal(); updateStats(); renderPointsList(); renderFishGuide(); }
 
 function updateDashboard() {
     const list = $('#recent-catches-list');

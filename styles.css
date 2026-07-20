@@ -712,6 +712,67 @@ form { padding: 16px; }
     margin-bottom: 4px;
 }
 
+/* Fish guide */
+.fishguide-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.fishguide-filters .search-input { flex: 1; }
+.fish-list {
+    display: grid;
+    gap: 10px;
+}
+.fish-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform .15s;
+}
+.fish-card:hover { transform: translateY(-2px); }
+.fish-card:active { transform: scale(.98); }
+.fish-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.fish-card-emoji { font-size: 2.2rem; }
+.fish-card-name { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+.fish-card-season {
+    font-size: .75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.fish-card-season.active { background: var(--success-light); color: #16a34a; }
+.fish-card-season.inactive { background: var(--danger-light); color: #dc2626; }
+.fish-card-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: .8rem;
+    color: var(--text2);
+    margin-top: 8px;
+}
+.fish-card-details div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.fish-card-desc {
+    margin-top: 8px;
+    font-size: .85rem;
+    color: var(--text2);
+    line-height: 1.4;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.fish-card-full { display: none; }
+.fish-card.expanded .fish-card-full { display: block; }
+
 /* Route modal */
 #route-modal {
     z-index: 1001;
