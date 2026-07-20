@@ -748,7 +748,7 @@ function addPlacemark(m) {
         '<div style="background:#2563eb;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">🐟</div>'
     );
 
-    // Информация о рыбе из базы
+    // Информация о рыбе
     let fishInfo = '';
     const wb = WATER_BODIES.find(w => w.name === m.name);
     if (wb) {
@@ -757,13 +757,16 @@ function addPlacemark(m) {
         fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + m.fish + '</div>';
     }
 
+    const showUrl = 'https://yandex.ru/maps/?ll=' + m.lng + ',' + m.lat + '&z=15&pt=' + m.lng + ',' + m.lat + ',pm2rdm';
+    const routeUrl = 'https://yandex.ru/maps/?rtext=' + m.lat + ',' + m.lng + '&rtt=auto';
+
     const placemark = new ymaps.Placemark([m.lat, m.lng], {
         balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">🐟 ' + m.name + '</div>'
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
             + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
-            + '<a href="https://yandex.ru/maps/?ll=' + m.lng + ',' + m.lat + '&z=15&pt=' + m.lng + ',' + m.lat + ',pm2rdm" target="_blank" style="display:block;padding:8px 12px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;">🗺 Открыть в Яндекс.Картах</a>'
-            + '<a href="https://yandex.ru/maps/?rtext=' + m.lat + ',' + m.lng + '&rtt=auto" target="_blank" style="display:block;padding:8px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;">🚗 Навигатор</a>'
+            + '<a href="' + showUrl + '" target="_blank" style="display:block;padding:8px 12px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;">🗺 Яндекс.Карты</a>'
+            + '<button onclick="openNavi(\'' + m.lat + '\',\'' + m.lng + '\')" style="display:block;padding:8px 12px;background:#00bfff;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;text-align:center;">🚗 Навигатор</button>'
             + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
             + '</div>'
     }, {
@@ -775,6 +778,27 @@ function addPlacemark(m) {
         iconContentLayout: MyIconLayout
     });
     ymap.geoObjects.add(placemark);
+}
+
+// Открытие Яндекс Навигатора
+function openNavi(lat, lng) {
+    const naviUrl = 'yandexnavi://build_route?to=' + lat + ',' + lng;
+    const routeUrl = 'https://yandex.ru/maps/?rtext=' + lat + ',' + lng + '&rtt=auto';
+
+    // Пробуем открыть приложение через скрытый iframe
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = naviUrl;
+    document.body.appendChild(iframe);
+
+    // Через 1.5 секунды если приложение не открылось — открываем в браузере
+    setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        window.location.href = routeUrl;
+    }, 1500);
+
+    // Убираем iframe через 3 секунды
+    setTimeout(() => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 3000);
 }
 
 function deleteMapMarker(id) {
@@ -844,3 +868,4 @@ window.openEditModal = openEditModal;
 window.openDeleteModal = openDeleteModal;
 window.selectCalendarDay = selectCalendarDay;
 window.deleteMapMarker = deleteMapMarker;
+window.openNavi = openNavi;
