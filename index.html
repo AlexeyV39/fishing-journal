@@ -180,9 +180,20 @@
                 <input type="text" id="map-search-input" placeholder="Поиск места... (деревня, река, озеро)" class="search-input">
                 <button class="btn btn-primary btn-small" id="map-search-btn">🔍</button>
             </div>
+
+            <!-- Переключатель слоёв -->
+            <div class="map-layers">
+                <span class="layers-label">Слой:</span>
+                <button class="layer-btn active" data-layer="map" id="layer-map">🗺 Карта</button>
+                <button class="layer-btn" data-layer="satellite" id="layer-satellite">🛰 Спутник</button>
+                <button class="layer-btn" data-layer="hybrid" id="layer-hybrid">🌐 Гибрид</button>
+                <button class="layer-btn" data-layer="depth" id="layer-depth">🌊 Глубины</button>
+            </div>
+
             <div id="map-container"></div>
             <div class="map-legend">
                 <span>🐟 Мои точки рыбалки</span>
+                <span id="depth-legend" style="display:none;">🌊 Данные о глубинах</span>
             </div>
 
             <!-- Список сохранённых точек -->

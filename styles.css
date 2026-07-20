@@ -640,6 +640,35 @@ form { padding: 16px; }
 }
 .map-search .search-input { flex: 1; }
 
+/* Map layers */
+.map-layers {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.layers-label {
+    font-size: .85rem;
+    color: var(--text2);
+    font-weight: 600;
+}
+.layer-btn {
+    padding: 6px 12px;
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    background: var(--card);
+    font-size: .8rem;
+    cursor: pointer;
+    transition: all .2s;
+}
+.layer-btn:hover { border-color: var(--primary); }
+.layer-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
 /* Saved points */
 .saved-points {
     margin-top: 20px;

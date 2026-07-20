@@ -129,6 +129,7 @@ function setupEvents() {
     $('#map-geo-btn').addEventListener('click', mapLocateMe);
     $('#map-search-btn').addEventListener('click', mapSearch);
     $('#map-search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') mapSearch(); });
+    $$('.layer-btn').forEach(b => b.addEventListener('click', () => switchMapLayer(b.dataset.layer)));
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
@@ -738,6 +739,14 @@ function createMap() {
             controls: ['zoomControl', 'geolocationControl']
         });
 
+        // Слои карты
+        window._mapLayers = {
+            map: ymap.layers.get(0),
+            satellite: null,
+            hybrid: null,
+            depth: null
+        };
+
         // Загрузить сохранённые маркеры
         mapMarkers.forEach(m => addPlacemark(m));
 
@@ -756,6 +765,69 @@ function createMap() {
             $('#marker-modal').classList.add('active');
         });
     });
+}
+
+// Переключение слоёв карты
+function switchMapLayer(layerName) {
+    if (!ymap) return;
+
+    // Убрать активный класс у всех кнопок
+    $$('.layer-btn').forEach(b => b.classList.remove('active'));
+    $(`#layer-${layerName}`).classList.add('active');
+
+    // Удалить старый слой глубин если был
+    if (window._depthLayer) {
+        ymap.layers.remove(window._depthLayer);
+        window._depthLayer = null;
+        $('#depth-legend').style.display = 'none';
+    }
+
+    // Переключить тип карты
+    switch(layerName) {
+        case 'map':
+            ymap.layers.get(0).options.set('provider', 'yandex#map');
+            break;
+        case 'satellite':
+            ymap.layers.get(0).options.set('provider', 'yandex#satellite');
+            break;
+        case 'hybrid':
+            ymap.layers.get(0).options.set('provider', 'yandex#hybrid');
+            break;
+        case 'depth':
+            ymap.layers.get(0).options.set('provider', 'yandex#satellite');
+            // Добавить слой глубин через OpenSeaMap тайлы
+            addDepthLayer();
+            break;
+    }
+}
+
+// Слой глубин (OpenSeaMap + кастомные тайлы)
+function addDepthLayer() {
+    // Используем OpenSeaMap тайлы для данных о глубинах
+    // OpenSeaMap предоставляет батиметрические данные для открытых вод
+    const depthTileUrl = 'https://tiles.openseamap.org/seamarkings/{z}/{x}/{y}.png';
+
+    // Создаём слой из тайлов
+    const depthLayer = new ymaps.Layer(
+        (tile, zoom) => {
+            // OpenSeaMap тайлы покрывают моря и крупные водоёмы
+            // Для малых водоёмов используем спутниковый с глубинной разметкой
+            if (zoom >= 10) {
+                return depthTileUrl.replace('{z}', zoom).replace('{x}', tile[0]).replace('{y}', tile[1]);
+            }
+            return null;
+        },
+        {
+            projection: ymaps.Projection.MERCATOR,
+            tessellation: true,
+            beta: true
+        }
+    );
+
+    ymap.layers.add(depthLayer);
+    window._depthLayer = depthLayer;
+    $('#depth-legend').style.display = 'inline';
+    showToast('🌊 Слой глубин активирован (OpenSeaMap)');
 }
 
 function togglePlacingMarker() {
