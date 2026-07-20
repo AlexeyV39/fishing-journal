@@ -4,6 +4,28 @@ const MONTHS_RU = ['Январь','Февраль','Март','Апрель','М
 const MONTHS_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const DAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
+// ─── Справочник рыб ───
+const FISH_DB = [
+    { name: 'Окунь', emoji: '🐟', minSize: 15, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Спиннинг', 'Жерлицы', 'Поплавочная удочка'], bait: ['Мотыль', 'Опарыш', 'Блесна', 'Воблер', 'Силикон'], desc: 'Предпочитает заросли, коряги, камни. Активен ранним утром и вечером.' },
+    { name: 'Щука', emoji: '🐟', minSize: 30, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Спиннинг', 'Жерлицы', 'Донка'], bait: ['Живец', 'Блесна', 'Воблер', 'Силикон'], desc: 'Хищник. Засадный охотник. Любимые места: урез воды, коряги, трава.' },
+    { name: 'Карась', emoji: '🐟', minSize: 15, season: 'Май — Октябрь', months: [4,5,6,7,8,9], tackle: ['Поплавочная удочка', 'Донка', 'Фидер'], bait: ['Червь', 'Тесто', 'Хлеб', 'Кукуруза', 'Горох'], desc: 'Любит тихие, прогретые места. Активен в тёплую погоду.' },
+    { name: 'Лещ', emoji: '🐟', minSize: 25, season: 'Апрель — Ноябрь', months: [3,4,5,6,7,8,9,10], tackle: ['Фидер', 'Поплавочная удочка', 'Донка'], bait: ['Мотыль', 'Опарыш', 'Червь', 'Манка'], desc: 'Держится на глубине. Активен на рассвете и закате.' },
+    { name: 'Судак', emoji: '🐟', minSize: 30, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Спиннинг', 'Донка', 'Жерлицы'], bait: ['Воблер', 'Силикон', 'Блесна', 'Живец'], desc: 'Глубоководный хищник. Любимые места: ямы, бровки, свалы глубин.' },
+    { name: 'Плотва', emoji: '🐟', minSize: 0, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Поплавочная удочка', 'Фидер'], bait: ['Мотыль', 'Червь', 'Хлеб', 'Тесто'], desc: 'Самая распространённая рыба. Держится стаями на мелководье.' },
+    { name: 'Налим', emoji: '🐟', minSize: 25, season: 'Ноябрь — Март', months: [0,1,2,3,10,11], tackle: ['Донка', 'Жерлицы'], bait: ['Живец', 'Мотыль', 'Червь'], desc: 'Ночная рыба. Активен зимой. Держится на глубине.' },
+    { name: 'Форель', emoji: '🐟', minSize: 15, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Спиннинг', 'Нахлыст'], bait: ['Блесна', 'Воблер', 'Муха', 'Червь'], desc: 'Предпочитает чистую, холодную воду. Горные реки, озёра.' },
+    { name: 'Сом', emoji: '🐟', minSize: 50, season: 'Июнь — Сентябрь', months: [5,6,7,8], tackle: ['Донка', 'Жерлицы'], bait: ['Живец', 'Лягушка', 'Куски мяса'], desc: 'Крупный хищник. Активен ночью. Держится в ямах и у обрывов.' },
+    { name: 'Язь', emoji: '🐟', minSize: 15, season: 'Апрель — Октябрь', months: [3,4,5,6,7,8,9], tackle: ['Поплавочная удочка', 'Фидер', 'Спиннинг'], bait: ['Червь', 'Мотыль', 'Кукуруза', 'Тесто'], desc: 'Осторожная рыба. Держится на средней глубине.' },
+    { name: 'Ерш', emoji: '🐟', minSize: 0, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Поплавочная удочка', 'Донка'], bait: ['Мотыль', 'Опарыш', 'Червь'], desc: 'Колючий, но вкусный. Держится у дна, в корягах.' },
+    { name: 'Линь', emoji: '🐟', minSize: 15, season: 'Июнь — Сентябрь', months: [5,6,7,8], tackle: ['Поплавочная удочка', 'Донка'], bait: ['Тесто', 'Горох', 'Кукуруза', 'Червь'], desc: 'Любит теплую, тихую воду. Заросли камыша, заливы.' },
+    { name: 'Карп', emoji: '🐟', minSize: 15, season: 'Май — Сентябрь', months: [4,5,6,7,8], tackle: ['Поплавочная удочка', 'Фидер', 'Донка'], bait: ['Кукуруза', 'Горох', 'Тесто', 'Бойлы', 'Червь'], desc: 'Крупная, осторожная рыба. Предпочитает тёплые воды.' },
+    { name: 'Амур', emoji: '🐟', minSize: 25, season: 'Июнь — Сентябрь', months: [5,6,7,8], tackle: ['Поплавочная удочка', 'Донка'], bait: ['Кукуруза', 'Горох', 'Бамбук', 'Тесто'], desc: 'Травоядный. Держится в камышовых зарослях.' },
+    { name: 'Краснопёрка', emoji: '🐟', minSize: 0, season: 'Май — Октябрь', months: [4,5,6,7,8,9], tackle: ['Поплавочная удочка', 'Фидер'], bait: ['Мотыль', 'Опарыш', 'Червь'], desc: 'Красивая рыба с красными плавниками. Тёплые, заросшие заливы.' },
+    { name: 'Уклейка', emoji: '🐟', minSize: 0, season: 'Май — Сентябрь', months: [4,5,6,7,8], tackle: ['Поплавочная удочка'], bait: ['Мотыль', 'Опарыш'], desc: 'Мелкая стайная рыба. Хороша как живец.' },
+    { name: 'Гольян', emoji: '🐟', minSize: 0, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Поплавочная удочка'], bait: ['Мотыль', 'Опарыш'], desc: 'Мелкая рыба чистых рек. Индикатор экологии.' },
+    { name: 'Густера', emoji: '🐟', minSize: 0, season: 'Апрель — Октябрь', months: [3,4,5,6,7,8,9], tackle: ['Поплавочная удочка', 'Фидер'], bait: ['Мотыль', 'Опарыш', 'Тесто'], desc: 'Стайная рыба. Держится на средней глубине.' },
+];
+
 // ─── Состояние ───
 let catches = [];
 let mapMarkers = [];
@@ -775,6 +797,10 @@ function switchMapLayer(layerName) {
     $$('.layer-btn').forEach(b => b.classList.remove('active'));
     $(`#layer-${layerName}`).classList.add('active');
 
+    // Сохранить текущие координаты и зум
+    const center = ymap.getCenter();
+    const zoom = ymap.getZoom();
+
     // Удалить старый слой глубин если был
     if (window._depthLayer) {
         ymap.layers.remove(window._depthLayer);
@@ -782,52 +808,96 @@ function switchMapLayer(layerName) {
         $('#depth-legend').style.display = 'none';
     }
 
-    // Переключить тип карты
-    switch(layerName) {
-        case 'map':
-            ymap.layers.get(0).options.set('provider', 'yandex#map');
-            break;
-        case 'satellite':
-            ymap.layers.get(0).options.set('provider', 'yandex#satellite');
-            break;
-        case 'hybrid':
-            ymap.layers.get(0).options.set('provider', 'yandex#hybrid');
-            break;
-        case 'depth':
-            ymap.layers.get(0).options.set('provider', 'yandex#satellite');
-            // Добавить слой глубин через OpenSeaMap тайлы
-            addDepthLayer();
-            break;
+    // Удалить метку местоположения если есть
+    const savedLoc = window._myLocationMark;
+    const savedCircle = window._myLocationCircle;
+
+    // Тип карты для Yandex
+    const typeMap = {
+        'map': 'yandex#map',
+        'satellite': 'yandex#satellite',
+        'hybrid': 'yandex#hybrid',
+        'depth': 'yandex#satellite'
+    };
+
+    // Пересоздать карту с нужным типом
+    ymap.destroy();
+    ymap = new ymaps.Map('map-container', {
+        center: center,
+        zoom: zoom,
+        type: typeMap[layerName],
+        controls: ['zoomControl', 'geolocationControl']
+    });
+
+    // Восстановить маркеры
+    mapMarkers.forEach(m => addPlacemark(m));
+
+    // Восстановить метку местоположения
+    if (savedLoc) {
+        const coords = savedLoc.geometry.getCoordinates();
+        const MyLocLayout = ymaps.templateLayoutFactory.createClass(
+            '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
+        );
+        window._myLocationMark = new ymaps.Placemark(coords, {
+            balloonContent: savedLoc.properties.get('balloonContent')
+        }, {
+            iconLayout: 'default#imageWithContent',
+            iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
+            iconImageSize: [32, 32],
+            iconImageOffset: [-16, -16],
+            iconContentOffset: [0, 0],
+            iconContentLayout: MyLocLayout
+        });
+        ymap.geoObjects.add(window._myLocationMark);
     }
+
+    // Клик по карте для добавления точки
+    ymap.events.add('click', (e) => {
+        if (!placingMarker) return;
+        placingMarker = false;
+        $('#add-marker-btn').textContent = '📍 Добавить точку';
+        $('#add-marker-btn').style.background = '';
+        const coords = e.get('coords');
+        $('#marker-lat').value = coords[0];
+        $('#marker-lng').value = coords[1];
+        $('#marker-name').value = '';
+        $('#marker-fish').value = '';
+        $('#marker-desc').value = '';
+        $('#marker-modal').classList.add('active');
+    });
+
+    // Добавить слой глубин если выбран
+    if (layerName === 'depth') {
+        addDepthLayer();
+    }
+
+    window._currentLayer = layerName;
 }
 
-// Слой глубин (OpenSeaMap + кастомные тайлы)
+// Слой глубин (OpenSeaMap)
 function addDepthLayer() {
-    // Используем OpenSeaMap тайлы для данных о глубинах
-    // OpenSeaMap предоставляет батиметрические данные для открытых вод
-    const depthTileUrl = 'https://tiles.openseamap.org/seamarkings/{z}/{x}/{y}.png';
-
-    // Создаём слой из тайлов
-    const depthLayer = new ymaps.Layer(
-        (tile, zoom) => {
-            // OpenSeaMap тайлы покрывают моря и крупные водоёмы
-            // Для малых водоёмов используем спутниковый с глубинной разметкой
-            if (zoom >= 10) {
-                return depthTileUrl.replace('{z}', zoom).replace('{x}', tile[0]).replace('{y}', tile[1]);
+    try {
+        const depthTileUrl = 'https://tiles.openseamap.org/seamarkings/{z}/{x}/{y}.png';
+        const depthLayer = new ymaps.Layer(
+            (tile, zoom) => {
+                if (zoom >= 5 && zoom <= 18) {
+                    return depthTileUrl.replace('{z}', zoom).replace('{x}', tile[0]).replace('{y}', tile[1]);
+                }
+                return null;
+            },
+            {
+                projection: ymaps.Projection.MERCATOR,
+                tessellation: true
             }
-            return null;
-        },
-        {
-            projection: ymaps.Projection.MERCATOR,
-            tessellation: true,
-            beta: true
-        }
-    );
-
-    ymap.layers.add(depthLayer);
-    window._depthLayer = depthLayer;
-    $('#depth-legend').style.display = 'inline';
-    showToast('🌊 Слой глубин активирован (OpenSeaMap)');
+        );
+        ymap.layers.add(depthLayer);
+        window._depthLayer = depthLayer;
+        $('#depth-legend').style.display = 'inline';
+        showToast('🌊 Слой глубин активирован');
+    } catch (e) {
+        console.error('Depth layer error:', e);
+        showToast('Слой глубин загружается...', 'error');
+    }
 }
 
 function togglePlacingMarker() {
