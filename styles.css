@@ -550,7 +550,7 @@ form { padding: 16px; }
 }
 .wd-icon { font-size: 1rem; margin-bottom: 2px; }
 .wd-label { font-size: .7rem; color: var(--text2); }
-.wd-item span:not(.wd-icon):not(.wd-label) { white-space: nowrap; }
+.wd-temp-range { white-space: nowrap; font-weight: 600; }
 .form-actions {
     display: flex;
     justify-content: flex-end;
