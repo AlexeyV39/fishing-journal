@@ -640,7 +640,7 @@ function addPlacemark(m) {
         fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + m.fish + '</div>';
     }
 
-    const naviUrl = 'yandexnavi://build_route?to=' + m.lat + ',' + m.lng;
+    const naviUrl = 'yandexnavi://';
 
     const placemark = new ymaps.Placemark([m.lat, m.lng], {
         balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">🐟 ' + m.name + '</div>'
