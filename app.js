@@ -170,7 +170,7 @@ function setupEvents() {
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
 
-    // Заполнить список водоёмов
+    // Заполнить список водоёмов в селекте
     const waterSelect = $('#water-body-select');
     WATER_BODIES.forEach((wb, i) => {
         const opt = document.createElement('option');
@@ -183,18 +183,54 @@ function setupEvents() {
         if (idx !== '') {
             const wb = WATER_BODIES[parseInt(idx)];
             $('#marker-name').value = wb.name;
+            $('#marker-fish').value = wb.fish.join(', ');
             $('#marker-desc').value = wb.region;
-            $('#fish-info-group').style.display = 'block';
-            $('#fish-info-text').textContent = wb.fish.join(', ');
-        } else {
-            $('#fish-info-group').style.display = 'none';
         }
     });
+
+    // Поиск по водоёмам
+    $('#water-search').addEventListener('input', renderWaterBodies);
+    renderWaterBodies();
 
     // Закрытие модалок по фону
     $('#catch-modal').addEventListener('click', (e) => { if (e.target === $('#catch-modal')) closeCatchModal(); });
     $('#delete-modal').addEventListener('click', (e) => { if (e.target === $('#delete-modal')) closeDeleteModal(); });
     $('#marker-modal').addEventListener('click', (e) => { if (e.target === $('#marker-modal')) $('#marker-modal').classList.remove('active'); });
+}
+
+// ─── Список водоёмов ───
+function renderWaterBodies() {
+    const q = ($('#water-search').value || '').toLowerCase();
+    const list = $('#water-bodies-list');
+    const filtered = WATER_BODIES.filter(wb =>
+        wb.name.toLowerCase().includes(q) ||
+        wb.region.toLowerCase().includes(q) ||
+        wb.fish.some(f => f.toLowerCase().includes(q))
+    );
+    if (!filtered.length) {
+        list.innerHTML = '<p class="empty-state">Ничего не найдено</p>';
+        return;
+    }
+    list.innerHTML = filtered.map(wb => `
+        <div class="water-card" onclick="selectWaterBody(${WATER_BODIES.indexOf(wb)})">
+            <div class="water-card-header">
+                <span class="water-name">${wb.name}</span>
+                <span class="water-region">${wb.region}</span>
+            </div>
+            <div class="water-fish">🐟 ${wb.fish.join(', ')}</div>
+        </div>
+    `).join('');
+}
+
+function selectWaterBody(idx) {
+    const wb = WATER_BODIES[idx];
+    placingMarker = true;
+    if (ymap) {
+        ymap.setCenter([wb.lat, wb.lng], 12);
+    }
+    showToast(`Добавьте точку на карте: ${wb.name}`);
+    // Подставить данные при добавлении маркера
+    window._pendingWaterBody = wb;
 }
 
 function switchTab(name) {
@@ -657,8 +693,19 @@ function createMap() {
             const coords = e.get('coords');
             $('#marker-lat').value = coords[0];
             $('#marker-lng').value = coords[1];
-            $('#marker-name').value = '';
-            $('#marker-desc').value = '';
+            // Если выбран водоём из справочника — подставить данные
+            const wb = window._pendingWaterBody;
+            if (wb) {
+                $('#marker-name').value = wb.name;
+                $('#marker-fish').value = wb.fish.join(', ');
+                $('#marker-desc').value = wb.region;
+                window._pendingWaterBody = null;
+            } else {
+                $('#marker-name').value = '';
+                $('#marker-fish').value = '';
+                $('#marker-desc').value = '';
+            }
+            $('#water-body-select').value = '';
             $('#marker-modal').classList.add('active');
         });
     });
@@ -678,26 +725,19 @@ function togglePlacingMarker() {
 
 function handleMarkerSubmit(e) {
     e.preventDefault();
-    const waterIdx = $('#water-body-select').value;
-    let fish = '';
-    if (waterIdx !== '') {
-        const wb = WATER_BODIES[parseInt(waterIdx)];
-        fish = wb.fish.join(', ');
-    }
     const marker = {
         id: genId(),
         lat: parseFloat($('#marker-lat').value),
         lng: parseFloat($('#marker-lng').value),
         name: $('#marker-name').value.trim(),
         desc: $('#marker-desc').value.trim(),
-        fish: fish || null
+        fish: $('#marker-fish').value.trim() || null
     };
     mapMarkers.push(marker);
     addPlacemark(marker);
     saveData();
     $('#marker-modal').classList.remove('active');
     $('#water-body-select').value = '';
-    $('#fish-info-group').style.display = 'none';
     showToast('Точка сохранена!');
 }
 

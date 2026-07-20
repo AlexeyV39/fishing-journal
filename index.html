@@ -159,7 +159,15 @@
             <div id="map-container"></div>
             <div class="map-legend">
                 <span>🐟 Точка улова</span>
-                <span>📌 Моё место</span>
+            </div>
+
+            <!-- Список водоёмов под картой -->
+            <div class="water-bodies-section">
+                <div class="water-header">
+                    <h3>Справочник водоёмов</h3>
+                    <input type="text" id="water-search" placeholder="Поиск водоёма..." class="search-input" style="max-width:300px;">
+                </div>
+                <div id="water-bodies-list" class="water-bodies-list"></div>
             </div>
         </section>
 
@@ -325,23 +333,22 @@
                 <input type="hidden" id="marker-lat">
                 <input type="hidden" id="marker-lng">
                 <div class="form-group">
-                    <label>Водоём (выберите из базы)</label>
-                    <select id="water-body-select" class="sort-select" style="margin-bottom:8px;">
-                        <option value="">— Выберите водоём —</option>
+                    <label>Выбрать из справочника (необязательно)</label>
+                    <select id="water-body-select" class="sort-select">
+                        <option value="">— Свободное заполнение —</option>
                     </select>
-                    <small style="color:#64748b;font-size:.75rem;">Или введите название вручную:</small>
                 </div>
                 <div class="form-group">
-                    <label>Название</label>
-                    <input type="text" id="marker-name" placeholder="Озеро, река..." required>
-                </div>
-                <div class="form-group" id="fish-info-group" style="display:none;">
-                    <label>Какая рыба обитает</label>
-                    <p id="fish-info-text" style="font-size:.85rem;color:#2563eb;background:#eff6ff;padding:8px;border-radius:8px;margin:0;"></p>
+                    <label>Название водоёма *</label>
+                    <input type="text" id="marker-name" placeholder="Озеро Байкал, река Волга..." required>
                 </div>
                 <div class="form-group">
-                    <label>Описание</label>
-                    <textarea id="marker-desc" rows="2" placeholder="Глубина, клёв..."></textarea>
+                    <label>Какая рыба</label>
+                    <textarea id="marker-fish" rows="2" placeholder="Щука, окунь, карась..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Заметки</label>
+                    <textarea id="marker-desc" rows="2" placeholder="Глубина, клёв, снасти..."></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-marker-btn">Отмена</button>
