@@ -8,6 +8,7 @@
     <meta name="theme-color" content="#1e40af">
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -16,6 +17,7 @@
         <nav class="nav">
             <button class="nav-btn active" data-tab="dashboard">Дашборд</button>
             <button class="nav-btn" data-tab="journal">Уловы</button>
+            <button class="nav-btn" data-tab="map">Карта</button>
             <button class="nav-btn" data-tab="calendar">Календарь</button>
             <button class="nav-btn" data-tab="stats">Статистика</button>
             <button class="nav-btn" data-tab="settings">⚙️</button>
@@ -29,7 +31,7 @@
                 <div class="card weather-card">
                     <div class="weather-header">
                         <h2>Погода</h2>
-                        <button class="btn btn-small btn-geo" id="geo-btn" title="Определить местоположение">📍 Моя локация</button>
+                        <button class="btn btn-small btn-geo" id="geo-btn">📍 Моя локация</button>
                     </div>
                     <div class="weather-loading" id="weather-loading">
                         <div class="spinner"></div>
@@ -130,12 +132,11 @@
             <div class="journal-header">
                 <h2>Журнал уловов</h2>
                 <div class="journal-actions">
-                    <button class="btn btn-secondary" id="export-btn">📥 Экспорт</button>
-                    <button class="btn btn-secondary" id="import-btn">📤 Импорт</button>
+                    <button class="btn btn-secondary" id="export-btn">📥</button>
+                    <button class="btn btn-secondary" id="import-btn">📤</button>
                     <button class="btn btn-primary" id="add-catch-btn">+ Добавить</button>
                 </div>
             </div>
-
             <div class="filters">
                 <input type="text" id="search-input" placeholder="Поиск..." class="search-input">
                 <select id="sort-select" class="sort-select">
@@ -145,9 +146,21 @@
                     <option value="size-asc">По размеру ↑</option>
                 </select>
             </div>
-
             <div id="catches-list" class="catches-list">
                 <p class="empty-state">Добавьте свой первый улов!</p>
+            </div>
+        </section>
+
+        <!-- Карта -->
+        <section id="map" class="tab-content">
+            <div class="map-header">
+                <h2>Карта рыбалки</h2>
+                <button class="btn btn-primary btn-small" id="add-marker-btn">📍 Добавить точку</button>
+            </div>
+            <div id="map-container"></div>
+            <div class="map-legend">
+                <span>🐟 Точка улова</span>
+                <span>📌 Моё место</span>
             </div>
         </section>
 
@@ -161,9 +174,9 @@
             </div>
             <div class="calendar-grid" id="calendar-grid"></div>
             <div class="calendar-legend">
-                <div class="legend-item"><span class="legend-color good"></span> Отличный клёв</div>
-                <div class="legend-item"><span class="legend-color medium"></span> Средний клёв</div>
-                <div class="legend-item"><span class="legend-color bad"></span> Слабый клёв</div>
+                <div class="legend-item"><span class="legend-color good"></span> Отличный</div>
+                <div class="legend-item"><span class="legend-color medium"></span> Средний</div>
+                <div class="legend-item"><span class="legend-color bad"></span> Слабый</div>
             </div>
             <div class="card calendar-tips" id="calendar-tips">
                 <h3>Совет дня</h3>
@@ -200,21 +213,17 @@
             <div class="settings-list">
                 <div class="setting-item">
                     <label>Город по умолчанию</label>
-                    <p class="setting-desc">Введите название города на русском или английском</p>
+                    <p class="setting-desc">Введите название города</p>
                     <input type="text" id="default-city-input" placeholder="Москва" class="setting-input">
                     <button class="btn btn-primary" id="save-city">Сохранить</button>
                 </div>
                 <div class="setting-item">
                     <label>Управление данными</label>
                     <div class="setting-buttons">
-                        <button class="btn btn-secondary" id="export-json">Экспорт JSON</button>
-                        <button class="btn btn-secondary" id="export-csv">Экспорт CSV</button>
-                        <button class="btn btn-danger" id="clear-data">Удалить все данные</button>
+                        <button class="btn btn-secondary" id="export-json">JSON</button>
+                        <button class="btn btn-secondary" id="export-csv">CSV</button>
+                        <button class="btn btn-danger" id="clear-data">Удалить всё</button>
                     </div>
-                </div>
-                <div class="setting-item">
-                    <label>Установить на телефон</label>
-                    <p class="setting-desc">Нажмите "Установить" в адресной строке браузера или используйте меню браузера → "Добавить на главный экран"</p>
                 </div>
             </div>
         </section>
@@ -241,27 +250,12 @@
                     <label for="catch-species">Вид рыбы</label>
                     <input type="text" id="catch-species" placeholder="Окунь, щука..." required list="fish-list">
                     <datalist id="fish-list">
-                        <option value="Окунь">
-                        <option value="Щука">
-                        <option value="Карась">
-                        <option value="Лещ">
-                        <option value="Судак">
-                        <option value="Плотва">
-                        <option value="Налим">
-                        <option value="Форель">
-                        <option value="Сом">
-                        <option value="Язь">
-                        <option value="Гольян">
-                        <option value="Ерш">
-                        <option value="Линь">
-                        <option value="Карп">
-                        <option value="Амур">
-                        <option value="Толстолобик">
-                        <option value="Жерех">
-                        <option value="Быстрянка">
-                        <option value="Густера">
-                        <option value="Красноперка">
-                        <option value="Уклейка">
+                        <option value="Окунь"><option value="Щука"><option value="Карась">
+                        <option value="Лещ"><option value="Судак"><option value="Плотва">
+                        <option value="Налим"><option value="Форель"><option value="Сом">
+                        <option value="Язь"><option value="Ерш"><option value="Линь">
+                        <option value="Карп"><option value="Амур"><option value="Толстолобик">
+                        <option value="Красноперка"><option value="Уклейка"><option value="Густера">
                     </datalist>
                 </div>
                 <div class="form-row">
@@ -278,24 +272,14 @@
                     <label for="catch-bait">Приманка</label>
                     <input type="text" id="catch-bait" placeholder="Червь, блесна..." list="bait-list">
                     <datalist id="bait-list">
-                        <option value="Червь">
-                        <option value="Мотыль">
-                        <option value="Опарыш">
-                        <option value="Блесна">
-                        <option value="Воблер">
-                        <option value="Силикон">
-                        <option value="Поппер">
-                        <option value="Колебалка">
-                        <option value="Вращающаяся блесна">
-                        <option value="Живец">
-                        <option value="Тесто">
-                        <option value="Хлеб">
-                        <option value="Кукуруза">
-                        <option value="Горох">
+                        <option value="Червь"><option value="Мотыль"><option value="Опарыш">
+                        <option value="Блесна"><option value="Воблер"><option value="Силикон">
+                        <option value="Поппер"><option value="Колебалка"><option value="Живец">
+                        <option value="Тесто"><option value="Хлеб"><option value="Кукуруза">
                     </datalist>
                 </div>
                 <div class="form-group">
-                    <label for="catch-photo">Фото</label>
+                    <label>Фото</label>
                     <div class="photo-upload" id="photo-upload">
                         <input type="file" id="catch-photo" accept="image/*" capture="environment" class="photo-input">
                         <div class="photo-preview" id="photo-preview">
@@ -331,14 +315,35 @@
         </div>
     </div>
 
-    <!-- Скрытый input для импорта -->
+    <!-- Модальное окно добавления точки на карте -->
+    <div id="marker-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Новая точка</h2>
+                <button class="close-btn" id="close-marker-modal">&times;</button>
+            </div>
+            <form id="marker-form">
+                <input type="hidden" id="marker-lat">
+                <input type="hidden" id="marker-lng">
+                <div class="form-group">
+                    <label>Название</label>
+                    <input type="text" id="marker-name" placeholder="Озеро, река..." required>
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="marker-desc" rows="2" placeholder="Какая рыба, глубина..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-marker-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').catch(() => {});
-        }
-    </script>
 </body>
 </html>

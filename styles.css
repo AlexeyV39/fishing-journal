@@ -535,6 +535,61 @@ form { padding: 16px; }
 
 .empty-state { text-align: center; padding: 24px; color: var(--text2); font-style: italic; }
 
+/* Map */
+.map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.map-header h2 { margin: 0; }
+
+#map-container {
+    width: 100%;
+    height: 60vh;
+    min-height: 350px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    z-index: 1;
+}
+
+.map-legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 10px;
+    font-size: .85rem;
+    color: var(--text2);
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: var(--radius-sm) !important;
+}
+.leaflet-popup-content {
+    margin: 10px 14px !important;
+    font-family: inherit !important;
+}
+.popup-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+.popup-desc {
+    font-size: .85rem;
+    color: var(--text2);
+}
+.popup-delete {
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: .8rem;
+}
+
 /* Responsive */
 @media (min-width: 600px) {
     .header { padding: 12px 24px; }
