@@ -325,12 +325,23 @@
                 <input type="hidden" id="marker-lat">
                 <input type="hidden" id="marker-lng">
                 <div class="form-group">
+                    <label>Водоём (выберите из базы)</label>
+                    <select id="water-body-select" class="sort-select" style="margin-bottom:8px;">
+                        <option value="">— Выберите водоём —</option>
+                    </select>
+                    <small style="color:#64748b;font-size:.75rem;">Или введите название вручную:</small>
+                </div>
+                <div class="form-group">
                     <label>Название</label>
                     <input type="text" id="marker-name" placeholder="Озеро, река..." required>
                 </div>
+                <div class="form-group" id="fish-info-group" style="display:none;">
+                    <label>Какая рыба обитает</label>
+                    <p id="fish-info-text" style="font-size:.85rem;color:#2563eb;background:#eff6ff;padding:8px;border-radius:8px;margin:0;"></p>
+                </div>
                 <div class="form-group">
                     <label>Описание</label>
-                    <textarea id="marker-desc" rows="2" placeholder="Какая рыба, глубина..."></textarea>
+                    <textarea id="marker-desc" rows="2" placeholder="Глубина, клёв..."></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-marker-btn">Отмена</button>
