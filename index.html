@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e40af">
+    <title>Рыболовный журнал</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <h1>🎣 Рыболовный журнал</h1>
+        <nav class="nav">
+            <button class="nav-btn active" data-tab="dashboard">Дашборд</button>
+            <button class="nav-btn" data-tab="journal">Уловы</button>
+            <button class="nav-btn" data-tab="calendar">Календарь</button>
+            <button class="nav-btn" data-tab="stats">Статистика</button>
+            <button class="nav-btn" data-tab="settings">⚙️</button>
+        </nav>
+    </header>
+
+    <main class="main">
+        <!-- Дашборд -->
+        <section id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card weather-card">
+                    <div class="weather-header">
+                        <h2>Погода</h2>
+                        <button class="btn btn-small btn-geo" id="geo-btn" title="Определить местоположение">📍 Моя локация</button>
+                    </div>
+                    <div class="weather-loading" id="weather-loading">
+                        <div class="spinner"></div>
+                        <p>Загрузка погоды...</p>
+                    </div>
+                    <div class="weather-info" id="weather-info" style="display:none">
+                        <div class="weather-icon" id="weather-icon">☀️</div>
+                        <div class="weather-details">
+                            <p class="temperature" id="weather-temp">--°C</p>
+                            <p class="description" id="weather-desc">Загрузка...</p>
+                            <p class="location" id="weather-location">--</p>
+                        </div>
+                    </div>
+                    <div class="weather-params" id="weather-params" style="display:none">
+                        <div class="param">
+                            <span class="param-label">Ветер</span>
+                            <span class="param-value" id="wind-speed">-- м/с</span>
+                        </div>
+                        <div class="param">
+                            <span class="param-label">Влажность</span>
+                            <span class="param-value" id="humidity">--%</span>
+                        </div>
+                        <div class="param">
+                            <span class="param-label">Давление</span>
+                            <span class="param-value" id="pressure">-- мм</span>
+                        </div>
+                    </div>
+                    <div class="weather-error" id="weather-error" style="display:none">
+                        <p>Не удалось загрузить погоду</p>
+                        <button class="btn btn-small" id="retry-weather">Повторить</button>
+                    </div>
+                </div>
+
+                <div class="card forecast-card">
+                    <h2>Прогноз клёва</h2>
+                    <div class="fishing-forecast" id="fishing-forecast">
+                        <div class="forecast-item">
+                            <span class="forecast-time">Утро</span>
+                            <span class="forecast-rating" id="forecast-morning">--</span>
+                            <div class="forecast-bar"><div class="forecast-fill" id="bar-morning" style="width:0%"></div></div>
+                        </div>
+                        <div class="forecast-item">
+                            <span class="forecast-time">День</span>
+                            <span class="forecast-rating" id="forecast-day">--</span>
+                            <div class="forecast-bar"><div class="forecast-fill" id="bar-day" style="width:0%"></div></div>
+                        </div>
+                        <div class="forecast-item">
+                            <span class="forecast-time">Вечер</span>
+                            <span class="forecast-rating" id="forecast-evening">--</span>
+                            <div class="forecast-bar"><div class="forecast-fill" id="bar-evening" style="width:0%"></div></div>
+                        </div>
+                        <div class="forecast-item">
+                            <span class="forecast-time">Ночь</span>
+                            <span class="forecast-rating" id="forecast-night">--</span>
+                            <div class="forecast-bar"><div class="forecast-fill" id="bar-night" style="width:0%"></div></div>
+                        </div>
+                    </div>
+                    <div class="moon-phase" id="moon-phase">
+                        <span>🌙 Луна:</span>
+                        <span class="moon-icon" id="moon-icon">🌑</span>
+                        <span id="moon-text">Загрузка...</span>
+                    </div>
+                </div>
+
+                <div class="card recent-catches">
+                    <h2>Последние уловы</h2>
+                    <ul id="recent-catches-list">
+                        <li class="empty-state">Пока нет уловов</li>
+                    </ul>
+                </div>
+
+                <div class="card quick-stats">
+                    <h2>Статистика</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="total-catches">0</span>
+                            <span class="stat-label">Уловов</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="total-fish">0</span>
+                            <span class="stat-label">Рыб</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="biggest-fish">-</span>
+                            <span class="stat-label">Крупнейшая</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="favorite-species">-</span>
+                            <span class="stat-label">Чаще всего</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Журнал уловов -->
+        <section id="journal" class="tab-content">
+            <div class="journal-header">
+                <h2>Журнал уловов</h2>
+                <div class="journal-actions">
+                    <button class="btn btn-secondary" id="export-btn">📥 Экспорт</button>
+                    <button class="btn btn-secondary" id="import-btn">📤 Импорт</button>
+                    <button class="btn btn-primary" id="add-catch-btn">+ Добавить</button>
+                </div>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="search-input" placeholder="Поиск..." class="search-input">
+                <select id="sort-select" class="sort-select">
+                    <option value="date-desc">Сначала новые</option>
+                    <option value="date-asc">Сначала старые</option>
+                    <option value="size-desc">По размеру ↓</option>
+                    <option value="size-asc">По размеру ↑</option>
+                </select>
+            </div>
+
+            <div id="catches-list" class="catches-list">
+                <p class="empty-state">Добавьте свой первый улов!</p>
+            </div>
+        </section>
+
+        <!-- Календарь клёва -->
+        <section id="calendar" class="tab-content">
+            <h2>Календарь клёва</h2>
+            <div class="calendar-nav">
+                <button class="btn btn-icon" id="prev-month">◀</button>
+                <h3 id="calendar-month-year">Июль 2026</h3>
+                <button class="btn btn-icon" id="next-month">▶</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div class="calendar-legend">
+                <div class="legend-item"><span class="legend-color good"></span> Отличный клёв</div>
+                <div class="legend-item"><span class="legend-color medium"></span> Средний клёв</div>
+                <div class="legend-item"><span class="legend-color bad"></span> Слабый клёв</div>
+            </div>
+            <div class="card calendar-tips" id="calendar-tips">
+                <h3>Совет дня</h3>
+                <p id="tips-text">Выберите дату для получения совета</p>
+            </div>
+        </section>
+
+        <!-- Статистика -->
+        <section id="stats" class="tab-content">
+            <h2>Статистика</h2>
+            <div class="stats-dashboard">
+                <div class="card">
+                    <h3>Уловы по месяцам</h3>
+                    <div id="monthly-chart" class="chart-container"><p class="empty-state">Недостаточно данных</p></div>
+                </div>
+                <div class="card">
+                    <h3>Популярные виды рыб</h3>
+                    <div id="species-chart" class="chart-container"><p class="empty-state">Недостаточно данных</p></div>
+                </div>
+                <div class="card">
+                    <h3>Лучшие места</h3>
+                    <div id="locations-chart" class="chart-container"><p class="empty-state">Недостаточно данных</p></div>
+                </div>
+                <div class="card">
+                    <h3>Средний размер по месяцам</h3>
+                    <div id="size-chart" class="chart-container"><p class="empty-state">Недостаточно данных</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Настройки -->
+        <section id="settings" class="tab-content">
+            <h2>Настройки</h2>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label>Город по умолчанию</label>
+                    <p class="setting-desc">Введите название города на русском или английском</p>
+                    <input type="text" id="default-city-input" placeholder="Москва" class="setting-input">
+                    <button class="btn btn-primary" id="save-city">Сохранить</button>
+                </div>
+                <div class="setting-item">
+                    <label>Управление данными</label>
+                    <div class="setting-buttons">
+                        <button class="btn btn-secondary" id="export-json">Экспорт JSON</button>
+                        <button class="btn btn-secondary" id="export-csv">Экспорт CSV</button>
+                        <button class="btn btn-danger" id="clear-data">Удалить все данные</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>Установить на телефон</label>
+                    <p class="setting-desc">Нажмите "Установить" в адресной строке браузера или используйте меню браузера → "Добавить на главный экран"</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Модальное окно добавления улова -->
+    <div id="catch-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Добавить улов</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <form id="catch-form">
+                <input type="hidden" id="catch-id">
+                <div class="form-group">
+                    <label for="catch-date">Дата</label>
+                    <input type="date" id="catch-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="catch-location">Место</label>
+                    <input type="text" id="catch-location" placeholder="Озеро, река..." required>
+                </div>
+                <div class="form-group">
+                    <label for="catch-species">Вид рыбы</label>
+                    <input type="text" id="catch-species" placeholder="Окунь, щука..." required list="fish-list">
+                    <datalist id="fish-list">
+                        <option value="Окунь">
+                        <option value="Щука">
+                        <option value="Карась">
+                        <option value="Лещ">
+                        <option value="Судак">
+                        <option value="Плотва">
+                        <option value="Налим">
+                        <option value="Форель">
+                        <option value="Сом">
+                        <option value="Язь">
+                        <option value="Гольян">
+                        <option value="Ерш">
+                        <option value="Линь">
+                        <option value="Карп">
+                        <option value="Амур">
+                        <option value="Толстолобик">
+                        <option value="Жерех">
+                        <option value="Быстрянка">
+                        <option value="Густера">
+                        <option value="Красноперка">
+                        <option value="Уклейка">
+                    </datalist>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="catch-size">Размер (см)</label>
+                        <input type="number" id="catch-size" min="1" placeholder="30">
+                    </div>
+                    <div class="form-group">
+                        <label for="catch-weight">Вес (кг)</label>
+                        <input type="number" id="catch-weight" min="0.01" step="0.01" placeholder="1.5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="catch-bait">Приманка</label>
+                    <input type="text" id="catch-bait" placeholder="Червь, блесна..." list="bait-list">
+                    <datalist id="bait-list">
+                        <option value="Червь">
+                        <option value="Мотыль">
+                        <option value="Опарыш">
+                        <option value="Блесна">
+                        <option value="Воблер">
+                        <option value="Силикон">
+                        <option value="Поппер">
+                        <option value="Колебалка">
+                        <option value="Вращающаяся блесна">
+                        <option value="Живец">
+                        <option value="Тесто">
+                        <option value="Хлеб">
+                        <option value="Кукуруза">
+                        <option value="Горох">
+                    </datalist>
+                </div>
+                <div class="form-group">
+                    <label for="catch-photo">Фото</label>
+                    <div class="photo-upload" id="photo-upload">
+                        <input type="file" id="catch-photo" accept="image/*" capture="environment" class="photo-input">
+                        <div class="photo-preview" id="photo-preview">
+                            <span class="photo-icon">📷</span>
+                            <span>Нажмите или перетащите</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="catch-notes">Заметки</label>
+                    <textarea id="catch-notes" rows="2" placeholder="Особенности, погода..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно удаления -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Удалить улов?</h2>
+                <button class="close-btn" id="close-delete-modal">&times;</button>
+            </div>
+            <p>Это действие нельзя отменить.</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-delete-btn">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый input для импорта -->
+    <input type="file" id="import-file-input" accept=".json" style="display:none">
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
