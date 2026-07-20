@@ -36,27 +36,44 @@
                         <div class="spinner"></div>
                         <p>Загрузка погоды...</p>
                     </div>
-                    <div class="weather-info" id="weather-info" style="display:none">
-                        <div class="weather-icon" id="weather-icon">☀️</div>
-                        <div class="weather-details">
-                            <p class="temperature" id="weather-temp">--°C</p>
-                            <p class="description" id="weather-desc">Загрузка...</p>
-                            <p class="location" id="weather-location">--</p>
+                    <div class="weather-content" id="weather-content" style="display:none">
+                        <!-- Сегодня -->
+                        <div class="weather-day">
+                            <h3>Погода на Сегодня</h3>
+                            <div class="weather-row">
+                                <span class="weather-row-icon" id="today-icon">☀️</span>
+                                <div class="weather-row-info">
+                                    <span class="weather-row-temp" id="today-temp">--°C</span>
+                                    <span class="weather-row-desc" id="today-desc">--</span>
+                                    <span class="weather-row-feels" id="today-feels">Ощущается как --°C</span>
+                                </div>
+                            </div>
+                            <div class="weather-details-grid">
+                                <div class="wd-item"><span class="wd-icon">💨</span><span id="today-wind">-- м/с</span><span class="wd-label">Ветер</span></div>
+                                <div class="wd-item"><span class="wd-icon">💧</span><span id="today-humidity">--%</span><span class="wd-label">Влажность</span></div>
+                                <div class="wd-item"><span class="wd-icon">📊</span><span id="today-pressure">-- мм</span><span class="wd-label">Давление</span></div>
+                                <div class="wd-item"><span class="wd-icon">🌡</span><span id="today-temp-min">--°</span>/<span id="today-temp-max">--°</span><span class="wd-label">Мин/Макс</span></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="weather-params" id="weather-params" style="display:none">
-                        <div class="param">
-                            <span class="param-label">Ветер</span>
-                            <span class="param-value" id="wind-speed">-- м/с</span>
+                        <!-- Завтра -->
+                        <div class="weather-day">
+                            <h3>Погода на Завтра</h3>
+                            <div class="weather-row">
+                                <span class="weather-row-icon" id="tomm-icon">☀️</span>
+                                <div class="weather-row-info">
+                                    <span class="weather-row-temp" id="tomm-temp">--°C</span>
+                                    <span class="weather-row-desc" id="tomm-desc">--</span>
+                                    <span class="weather-row-feels" id="tomm-feels">Ощущается как --°C</span>
+                                </div>
+                            </div>
+                            <div class="weather-details-grid">
+                                <div class="wd-item"><span class="wd-icon">💨</span><span id="tomm-wind">-- м/с</span><span class="wd-label">Ветер</span></div>
+                                <div class="wd-item"><span class="wd-icon">💧</span><span id="tomm-humidity">--%</span><span class="wd-label">Влажность</span></div>
+                                <div class="wd-item"><span class="wd-icon">📊</span><span id="tomm-pressure">-- мм</span><span class="wd-label">Давление</span></div>
+                                <div class="wd-item"><span class="wd-icon">🌡</span><span id="tomm-temp-min">--°</span>/<span id="tomm-temp-max">--°</span><span class="wd-label">Мин/Макс</span></div>
+                            </div>
                         </div>
-                        <div class="param">
-                            <span class="param-label">Влажность</span>
-                            <span class="param-value" id="humidity">--%</span>
-                        </div>
-                        <div class="param">
-                            <span class="param-label">Давление</span>
-                            <span class="param-value" id="pressure">-- мм</span>
-                        </div>
+                        <p class="weather-location" id="weather-location" style="text-align:center;padding:8px;color:#64748b;">--</p>
                     </div>
                     <div class="weather-error" id="weather-error" style="display:none">
                         <p>Не удалось загрузить погоду</p>
@@ -240,58 +257,104 @@
             <form id="catch-form">
                 <input type="hidden" id="catch-id">
                 <div class="form-group">
-                    <label for="catch-date">Дата</label>
+                    <label for="catch-date">Дата рыбалки</label>
                     <input type="date" id="catch-date" required>
                 </div>
+
+                <!-- Период лова -->
+                <div class="form-group">
+                    <label>Период лова</label>
+                    <p class="form-hint">Ночь 00-6, Утро 6-10, День 10-18, Вечер 18-00</p>
+                    <div class="checkbox-row">
+                        <label class="checkbox-label"><input type="checkbox" id="time-night"> Ночь</label>
+                        <label class="checkbox-label"><input type="checkbox" id="time-morning" checked> Утро</label>
+                        <label class="checkbox-label"><input type="checkbox" id="time-day"> День</label>
+                        <label class="checkbox-label"><input type="checkbox" id="time-evening"> Вечер</label>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="catch-location">Место</label>
                     <input type="text" id="catch-location" placeholder="Озеро, река..." required>
                 </div>
+
+                <!-- Используемая снасть -->
                 <div class="form-group">
-                    <label for="catch-species">Вид рыбы</label>
-                    <input type="text" id="catch-species" placeholder="Окунь, щука..." required list="fish-list">
-                    <datalist id="fish-list">
-                        <option value="Окунь"><option value="Щука"><option value="Карась">
-                        <option value="Лещ"><option value="Судак"><option value="Плотва">
-                        <option value="Налим"><option value="Форель"><option value="Сом">
-                        <option value="Язь"><option value="Ерш"><option value="Линь">
-                        <option value="Карп"><option value="Амур"><option value="Толстолобик">
-                        <option value="Красноперка"><option value="Уклейка"><option value="Густера">
-                    </datalist>
+                    <label for="catch-tackle">Снасть</label>
+                    <select id="catch-tackle" class="sort-select">
+                        <option value="">Не выбрана</option>
+                        <option value="Поплавочная удочка">Поплавочная удочка</option>
+                        <option value="Донка">Донка</option>
+                        <option value="Фидер">Фидер</option>
+                        <option value="Спиннинг">Спиннинг</option>
+                        <option value="Нахлыст">Нахлыст</option>
+                        <option value="Троллинг">Троллинг</option>
+                        <option value="Жерлицы">Жерлицы</option>
+                        <option value="Кружки">Кружки</option>
+                        <option value="Живец">Живец</option>
+                        <option value="Пружинная донка">Пружинная донка</option>
+                        <option value="Катушка с кормушкой">Катушка с кормушкой</option>
+                    </select>
                 </div>
-                <div class="form-row">
+
+                <!-- Статус улова -->
+                <div class="form-group">
+                    <label>Улов</label>
+                    <div class="checkbox-row">
+                        <label class="checkbox-label"><input type="radio" name="catch-status" id="status-catch" value="1" checked> Улов есть</label>
+                        <label class="checkbox-label"><input type="radio" name="catch-status" id="status-no-catch" value="0"> Нет улова</label>
+                    </div>
+                </div>
+
+                <!-- Если улов есть — показываем вид/размер/вес -->
+                <div id="catch-details-section">
                     <div class="form-group">
-                        <label for="catch-size">Размер (см)</label>
-                        <input type="number" id="catch-size" min="1" placeholder="30">
+                        <label for="catch-species">Вид рыбы</label>
+                        <input type="text" id="catch-species" placeholder="Окунь, щука..." list="fish-list">
+                        <datalist id="fish-list">
+                            <option value="Окунь"><option value="Щука"><option value="Карась">
+                            <option value="Лещ"><option value="Судак"><option value="Плотва">
+                            <option value="Налим"><option value="Форель"><option value="Сом">
+                            <option value="Язь"><option value="Ерш"><option value="Линь">
+                            <option value="Карп"><option value="Амур"><option value="Толстолобик">
+                            <option value="Красноперка"><option value="Уклейка"><option value="Густера">
+                        </datalist>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="catch-size">Размер (см)</label>
+                            <input type="number" id="catch-size" min="1" placeholder="30">
+                        </div>
+                        <div class="form-group">
+                            <label for="catch-weight">Вес (кг)</label>
+                            <input type="number" id="catch-weight" min="0.01" step="0.01" placeholder="1.5">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="catch-weight">Вес (кг)</label>
-                        <input type="number" id="catch-weight" min="0.01" step="0.01" placeholder="1.5">
+                        <label for="catch-bait">Приманка</label>
+                        <input type="text" id="catch-bait" placeholder="Червь, блесна..." list="bait-list">
+                        <datalist id="bait-list">
+                            <option value="Червь"><option value="Мотыль"><option value="Опарыш">
+                            <option value="Блесна"><option value="Воблер"><option value="Силикон">
+                            <option value="Поппер"><option value="Колебалка"><option value="Живец">
+                            <option value="Тесто"><option value="Хлеб"><option value="Кукуруза">
+                        </datalist>
                     </div>
                 </div>
+
                 <div class="form-group">
-                    <label for="catch-bait">Приманка</label>
-                    <input type="text" id="catch-bait" placeholder="Червь, блесна..." list="bait-list">
-                    <datalist id="bait-list">
-                        <option value="Червь"><option value="Мотыль"><option value="Опарыш">
-                        <option value="Блесна"><option value="Воблер"><option value="Силикон">
-                        <option value="Поппер"><option value="Колебалка"><option value="Живец">
-                        <option value="Тесто"><option value="Хлеб"><option value="Кукуруза">
-                    </datalist>
-                </div>
-                <div class="form-group">
-                    <label>Фото</label>
+                    <label>Фото улова</label>
                     <div class="photo-upload" id="photo-upload">
                         <input type="file" id="catch-photo" accept="image/*" capture="environment" class="photo-input">
                         <div class="photo-preview" id="photo-preview">
                             <span class="photo-icon">📷</span>
-                            <span>Нажмите или перетащите</span>
+                            <span>Добавить фото</span>
                         </div>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="catch-notes">Заметки</label>
-                    <textarea id="catch-notes" rows="2" placeholder="Особенности, погода..."></textarea>
+                    <label for="catch-notes">Комментарий</label>
+                    <textarea id="catch-notes" rows="2" placeholder="Особенности, погода, клёв..."></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-btn">Отмена</button>

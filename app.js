@@ -93,6 +93,10 @@ function setupEvents() {
     $('#search-input').addEventListener('input', updateJournal);
     $('#sort-select').addEventListener('change', updateJournal);
 
+    // Показать/скрыть секцию улова
+    $('input[name="catch-status"]').forEach(r => r.addEventListener('change', toggleCatchSection));
+    toggleCatchSection();
+
     // Удаление
     $('#close-delete-modal').addEventListener('click', closeDeleteModal);
     $('#cancel-delete-btn').addEventListener('click', closeDeleteModal);
@@ -148,6 +152,11 @@ function switchTab(name) {
 
 function setDefaultDate() { $('#catch-date').value = new Date().toISOString().split('T')[0]; }
 
+function toggleCatchSection() {
+    const hasCatch = $('#status-catch').checked;
+    $('#catch-details-section').style.display = hasCatch ? 'block' : 'none';
+}
+
 // ─── Модалки ───
 function openAddModal() {
     currentEditId = null;
@@ -164,15 +173,35 @@ function openEditModal(id) {
     if (!c) return;
     currentEditId = id;
     photoDataUrl = c.photo || null;
-    $('#modal-title').textContent = 'Редактировать улов';
+    $('#modal-title').textContent = 'Редактировать запись';
     $('#catch-id').value = id;
     $('#catch-date').value = c.date;
     $('#catch-location').value = c.location;
-    $('#catch-species').value = c.species;
+
+    // Период лова
+    $('#time-night').checked = (c.periods || '').includes('Ночь');
+    $('#time-morning').checked = (c.periods || '').includes('Утро');
+    $('#time-day').checked = (c.periods || '').includes('День');
+    $('#time-evening').checked = (c.periods || '').includes('Вечер');
+
+    // Снасть
+    $('#catch-tackle').value = c.tackle || '';
+
+    // Статус
+    if (c.hasCatch === false) {
+        $('#status-no-catch').checked = true;
+    } else {
+        $('#status-catch').checked = true;
+    }
+
+    // Улов
+    $('#catch-species').value = c.species || '';
     $('#catch-size').value = c.size || '';
     $('#catch-weight').value = c.weight || '';
     $('#catch-bait').value = c.bait || '';
     $('#catch-notes').value = c.notes || '';
+
+    toggleCatchSection();
     if (photoDataUrl) { $('#photo-preview').innerHTML = `<img src="${photoDataUrl}">`; }
     else resetPhotoPreview();
     $('#catch-modal').classList.add('active');
@@ -242,20 +271,32 @@ function resetPhotoPreview() {
 function handleFormSubmit(e) {
     e.preventDefault();
 
-    const species = $('#catch-species').value.trim();
     const location = $('#catch-location').value.trim();
-    if (!species || !location) {
-        showToast('Заполните вид рыбы и место!', 'error');
+    if (!location) {
+        showToast('Заполните место!', 'error');
         return;
     }
+
+    // Период лова
+    const periods = [];
+    if ($('#time-night').checked) periods.push('Ночь');
+    if ($('#time-morning').checked) periods.push('Утро');
+    if ($('#time-day').checked) periods.push('День');
+    if ($('#time-evening').checked) periods.push('Вечер');
+
+    // Статус улова
+    const hasCatch = $('#status-catch').checked;
 
     const data = {
         date: $('#catch-date').value || new Date().toISOString().split('T')[0],
         location: location,
-        species: species,
-        size: parseFloat($('#catch-size').value) || null,
-        weight: parseFloat($('#catch-weight').value) || null,
-        bait: $('#catch-bait').value.trim() || null,
+        periods: periods.join(', ') || null,
+        tackle: $('#catch-tackle').value || null,
+        hasCatch: hasCatch,
+        species: hasCatch ? $('#catch-species').value.trim() : null,
+        size: hasCatch ? parseFloat($('#catch-size').value) || null : null,
+        weight: hasCatch ? parseFloat($('#catch-weight').value) || null : null,
+        bait: hasCatch ? $('#catch-bait').value.trim() : null,
         notes: $('#catch-notes').value.trim() || null,
         photo: photoDataUrl || null
     };
@@ -263,12 +304,12 @@ function handleFormSubmit(e) {
     if (currentEditId) {
         const i = catches.findIndex(c => c.id === currentEditId);
         if (i !== -1) catches[i] = { ...catches[i], ...data };
-        showToast('Улов обновлён!');
+        showToast('Запись обновлена!');
     } else {
         data.id = genId();
         data.createdAt = Date.now();
         catches.push(data);
-        showToast('Улов сохранён!');
+        showToast('Запись сохранена!');
     }
 
     saveData();
@@ -284,21 +325,29 @@ function updateAll() { updateDashboard(); updateJournal(); updateStats(); }
 function updateDashboard() {
     const list = $('#recent-catches-list');
     const sorted = [...catches].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,5);
-    if (!sorted.length) { list.innerHTML = '<li class="empty-state">Пока нет уловов</li>'; return; }
-    list.innerHTML = sorted.map(c => `
-        <li>
-            <div><span class="catch-species">${fishIcon(c.species)} ${c.species}</span><br><span class="catch-details">${c.location}</span></div>
+    if (!sorted.length) { list.innerHTML = '<li class="empty-state">Пока нет записей</li>'; return; }
+    list.innerHTML = sorted.map(c => {
+        const status = c.hasCatch === false ? '❌ Нет улова' : (c.species ? `🐟 ${c.species}` : '🐟 Улов');
+        const time = c.periods ? `🕐 ${c.periods}` : '';
+        const tackle = c.tackle ? `🎣 ${c.tackle}` : '';
+        return `<li>
+            <div>
+                <span class="catch-species">${status}</span><br>
+                <span class="catch-details">📍 ${c.location}${time ? ' · ' + time : ''}</span>
+            </div>
             <span class="catch-date">${fmtDate(c.date)}</span>
-        </li>`).join('');
+        </li>`;
+    }).join('');
 
     $('#total-catches').textContent = catches.length;
-    $('#total-fish').textContent = catches.length;
+    $('#total-fish').textContent = catches.filter(c => c.hasCatch !== false && c.species).length;
     if (catches.length) {
         const sz = catches.filter(c=>c.size);
         $('#biggest-fish').textContent = sz.length ? sz.reduce((a,b)=>a.size>b.size?a:b).size + ' см' : '-';
         const sp = {};
-        catches.forEach(c=>{ sp[c.species]=(sp[c.species]||0)+1; });
-        $('#favorite-species').textContent = Object.entries(sp).sort((a,b)=>b[1]-a[1])[0][0];
+        catches.filter(c=>c.species).forEach(c=>{ sp[c.species]=(sp[c.species]||0)+1; });
+        const top = Object.entries(sp).sort((a,b)=>b[1]-a[1])[0];
+        $('#favorite-species').textContent = top ? top[0] : '-';
     } else {
         $('#biggest-fish').textContent = '-';
         $('#favorite-species').textContent = '-';
@@ -317,14 +366,17 @@ function updateJournal() {
     }
     const list = $('#catches-list');
     if (!f.length) { list.innerHTML = '<p class="empty-state">Ничего не найдено</p>'; return; }
-    list.innerHTML = f.map(c => `
-        <div class="catch-card">
+    list.innerHTML = f.map(c => {
+        const status = c.hasCatch === false ? '❌ Нет улова' : (c.species ? `🐟 ${c.species}` : '');
+        return `<div class="catch-card">
             <div class="catch-header">
-                <span class="catch-species">${fishIcon(c.species)} ${c.species}</span>
+                <span class="catch-species">${status || '📋 Запись'}</span>
                 <span class="catch-date">${fmtDate(c.date)}</span>
             </div>
             <p class="catch-location">📍 ${c.location}</p>
             <div class="catch-details">
+                ${c.periods ? `<span class="catch-detail">🕐 ${c.periods}</span>` : ''}
+                ${c.tackle ? `<span class="catch-detail">🎣 ${c.tackle}</span>` : ''}
                 ${c.size ? `<span class="catch-detail">📏 ${c.size} см</span>` : ''}
                 ${c.weight ? `<span class="catch-detail">⚖️ ${c.weight} кг</span>` : ''}
                 ${c.bait ? `<span class="catch-detail">🪝 ${c.bait}</span>` : ''}
@@ -335,7 +387,8 @@ function updateJournal() {
                 <button class="btn btn-icon" onclick="openEditModal('${c.id}')" title="Редактировать">✏️</button>
                 <button class="btn btn-icon" onclick="openDeleteModal('${c.id}')" title="Удалить">🗑️</button>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 }
 
 // ─── Статистика ───
@@ -377,28 +430,48 @@ function updateSizeChart() {
 // ─── Погода (Open-Meteo) ───
 async function loadWeather() {
     $('#weather-loading').style.display = 'block';
-    $('#weather-info').style.display = 'none';
-    $('#weather-params').style.display = 'none';
+    $('#weather-content').style.display = 'none';
     $('#weather-error').style.display = 'none';
     try {
         const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city)}&count=1&language=ru&format=json`);
         const geoData = await geoRes.json();
         if (!geoData.results || !geoData.results.length) throw new Error(`Город "${settings.city}" не найден`);
         const { latitude: lat, longitude: lon } = geoData.results[0];
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`);
+
+        // Текущая погода + прогноз на 2 дня
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
         if (!wRes.ok) throw new Error('Ошибка API');
         const data = await wRes.json();
         const cur = data.current;
-        $('#weather-icon').textContent = wmoToEmoji(cur.weather_code);
-        $('#weather-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
-        $('#weather-desc').textContent = wmoToText(cur.weather_code);
-        $('#weather-location').textContent = settings.city;
-        $('#wind-speed').textContent = `${cur.wind_speed_10m} км/ч`;
-        $('#humidity').textContent = `${cur.relative_humidity_2m}%`;
-        $('#pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+        const daily = data.daily;
+
+        // Сегодня
+        $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
+        $('#today-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
+        $('#today-desc').textContent = wmoToText(cur.weather_code);
+        $('#today-feels').textContent = `Ощущается как ${Math.round(cur.apparent_temperature)}°C`;
+        $('#today-wind').textContent = `${cur.wind_speed_10m} м/с`;
+        $('#today-humidity').textContent = `${cur.relative_humidity_2m}%`;
+        $('#today-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+        $('#today-temp-min').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
+        $('#today-temp-max').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
+
+        // Завтра
+        if (daily.time.length > 1) {
+            $('#tomm-icon').textContent = wmoToEmoji(daily.weather_code[1]);
+            $('#tomm-temp').textContent = `${Math.round((daily.temperature_2m_max[1] + daily.temperature_2m_min[1]) / 2)}°C`;
+            $('#tomm-desc').textContent = wmoToText(daily.weather_code[1]);
+            $('#tomm-feels').textContent = `Мин: ${Math.round(daily.temperature_2m_min[1])}° / Макс: ${Math.round(daily.temperature_2m_max[1])}°`;
+            $('#tomm-wind').textContent = `${daily.wind_speed_10m_max[1]} м/с`;
+            $('#tomm-humidity').textContent = `${daily.relative_humidity_2m_mean[1]}%`;
+            $('#tomm-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+            $('#tomm-temp-min').textContent = `${Math.round(daily.temperature_2m_min[1])}°`;
+            $('#tomm-temp-max').textContent = `${Math.round(daily.temperature_2m_max[1])}°`;
+        }
+
+        $('#weather-location').textContent = `📍 ${settings.city}`;
         $('#weather-loading').style.display = 'none';
-        $('#weather-info').style.display = 'flex';
-        $('#weather-params').style.display = 'grid';
+        $('#weather-content').style.display = 'block';
         updateForecastFromWeather(cur);
     } catch (e) {
         $('#weather-loading').style.display = 'none';
@@ -421,19 +494,39 @@ async function detectLocation() {
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ru`);
         const geoData = await geoRes.json();
         const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.state || 'Москва';
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure&timezone=auto&forecast_days=1`);
+
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
         const data = await wRes.json();
         const cur = data.current;
-        $('#weather-icon').textContent = wmoToEmoji(cur.weather_code);
-        $('#weather-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
-        $('#weather-desc').textContent = wmoToText(cur.weather_code);
+        const daily = data.daily;
+
+        // Сегодня
+        $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
+        $('#today-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
+        $('#today-desc').textContent = wmoToText(cur.weather_code);
+        $('#today-feels').textContent = `Ощущается как ${Math.round(cur.apparent_temperature)}°C`;
+        $('#today-wind').textContent = `${cur.wind_speed_10m} м/с`;
+        $('#today-humidity').textContent = `${cur.relative_humidity_2m}%`;
+        $('#today-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+        $('#today-temp-min').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
+        $('#today-temp-max').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
+
+        // Завтра
+        if (daily.time.length > 1) {
+            $('#tomm-icon').textContent = wmoToEmoji(daily.weather_code[1]);
+            $('#tomm-temp').textContent = `${Math.round((daily.temperature_2m_max[1] + daily.temperature_2m_min[1]) / 2)}°C`;
+            $('#tomm-desc').textContent = wmoToText(daily.weather_code[1]);
+            $('#tomm-feels').textContent = `Мин: ${Math.round(daily.temperature_2m_min[1])}° / Макс: ${Math.round(daily.temperature_2m_max[1])}°`;
+            $('#tomm-wind').textContent = `${daily.wind_speed_10m_max[1]} м/с`;
+            $('#tomm-humidity').textContent = `${daily.relative_humidity_2m_mean[1]}%`;
+            $('#tomm-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+            $('#tomm-temp-min').textContent = `${Math.round(daily.temperature_2m_min[1])}°`;
+            $('#tomm-temp-max').textContent = `${Math.round(daily.temperature_2m_max[1])}°`;
+        }
+
         $('#weather-location').textContent = `📍 ${city}`;
-        $('#wind-speed').textContent = `${cur.wind_speed_10m} км/ч`;
-        $('#humidity').textContent = `${cur.relative_humidity_2m}%`;
-        $('#pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
         $('#weather-loading').style.display = 'none';
-        $('#weather-info').style.display = 'flex';
-        $('#weather-params').style.display = 'grid';
+        $('#weather-content').style.display = 'block';
         $('#weather-error').style.display = 'none';
         updateForecastFromWeather(cur);
         settings.city = city;
