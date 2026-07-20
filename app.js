@@ -193,16 +193,39 @@ function confirmDelete() {
 function handlePhotoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('Фото слишком большое (макс 2 МБ)', 'error');
-        return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        photoDataUrl = ev.target.result;
+    // Сжимаем фото перед сохранением
+    compressPhoto(file, 1200, 0.7).then(dataUrl => {
+        photoDataUrl = dataUrl;
         $('#photo-preview').innerHTML = `<img src="${photoDataUrl}">`;
-    };
-    reader.readAsDataURL(file);
+    }).catch(() => {
+        showToast('Ошибка обработки фото', 'error');
+    });
+}
+
+function compressPhoto(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                const result = canvas.toDataURL('image/jpeg', quality);
+                resolve(result);
+            };
+            img.onerror = reject;
+            img.src = ev.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
 
 function resetPhotoPreview() {
@@ -612,12 +635,18 @@ function addPlacemark(m) {
             <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
                 <a href="https://yandex.ru/maps/?ll=${m.lng},${m.lat}&z=15&pt=${m.lng},${m.lat},pm2rdm"
                    target="_blank"
-                   style="display:inline-block;padding:4px 10px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none;font-size:.8rem;">
-                   🗺 Открыть в Яндекс.Картах
+                   style="display:inline-block;padding:5px 10px;background:#2563eb;color:#fff;border-radius:4px;text-decoration:none;font-size:.8rem;">
+                   🗺 Яндекс.Карты
+                </a>
+                <a href="yandexnavi://build_route_on_map?lat=${m.lat}&lon=${m.lng}&z=15"
+                   onclick="window.location='https://yandex.ru/maps/?ll=${m.lng},${m.lat}&z=15&rtext=${m.lat},${m.lng}&rtt=auto'"
+                   target="_blank"
+                   style="display:inline-block;padding:5px 10px;background:#00aaff;color:#fff;border-radius:4px;text-decoration:none;font-size:.8rem;">
+                   🚗 Навигатор
                 </a>
                 <button onclick="deleteMapMarker('${m.id}')"
-                        style="padding:4px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;">
-                   🗑 Удалить
+                        style="padding:5px 10px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.8rem;">
+                   🗑
                 </button>
             </div>
         `
