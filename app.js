@@ -121,6 +121,7 @@ function setupEvents() {
 
     // Карта
     $('#add-marker-btn').addEventListener('click', togglePlacingMarker);
+    $('#map-geo-btn').addEventListener('click', mapLocateMe);
     $('#close-marker-modal').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#cancel-marker-btn').addEventListener('click', () => $('#marker-modal').classList.remove('active'));
     $('#marker-form').addEventListener('submit', handleMarkerSubmit);
@@ -545,7 +546,8 @@ function selectCalendarDay(y,m,d) {
 }
 function getDayRating(date) { return Math.round(getMoonFactor(getMoonPhase(date)) * getSeasonFactor(date.getMonth()) * 100); }
 function getDayMoonEmoji(date) { const p=getMoonPhase(date); if(p<0.1||p>0.9)return'🌑'; if(p<0.25)return'🌒'; if(p<0.5)return'🌓'; if(p<0.75)return'🌔'; return'🌕'; }
-function showDayTips(date) {
+
+async function showDayTips(date) {
     const moon=getMoonPhase(date), month=date.getMonth(), rating=getDayRating(date);
     let a = rating>=75?'Отличный день! ':rating>=55?'Хороший день. ':rating>=35?'Средний день. ':'Сложный день. ';
     if(moon<0.1||moon>0.9) a+='Новолуние — мелкие приманки.';
@@ -554,7 +556,32 @@ function showDayTips(date) {
     else if(month>=5&&month<=7) a+='Лучшее время — утро и вечер.';
     else if(month>=8&&month<=10) a+='Осень — рыба активно питается.';
     else a+='Зима — ловля на мотыля.';
-    $('#tips-text').textContent = a;
+
+    // Прогноз погоды на выбранную дату
+    let weatherHtml = '';
+    try {
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city)}&count=1&language=ru&format=json`);
+        const geoData = await geoRes.json();
+        if (geoData.results && geoData.results.length > 0) {
+            const { latitude: lat, longitude: lng } = geoData.results[0];
+            const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+            const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,wind_speed_10m_max&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`);
+            const wData = await wRes.json();
+            if (wData.daily) {
+                const d = wData.daily;
+                weatherHtml = '<div style="margin-top:10px;padding:10px 12px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">'
+                    + '<div style="font-weight:600;margin-bottom:6px;">🌤 Погода:</div>'
+                    + '<div style="font-size:.85rem;display:grid;grid-template-columns:1fr 1fr;gap:4px;">'
+                    + '<span>' + wmoToEmoji(d.weather_code[0]) + ' ' + wmoToText(d.weather_code[0]) + '</span>'
+                    + '<span>🌡 ' + Math.round(d.temperature_2m_min[0]) + '°...+' + Math.round(d.temperature_2m_max[0]) + '°</span>'
+                    + '<span>💨 ' + Math.round(d.wind_speed_10m_max[0]) + ' км/ч</span>'
+                    + '<span>💧 ' + (d.precipitation_sum[0] || 0) + ' мм</span>'
+                    + '</div></div>';
+            }
+        }
+    } catch(e) {}
+
+    $('#tips-text').innerHTML = a + weatherHtml;
 }
 
 // ─── Яндекс Карты ───
@@ -670,6 +697,53 @@ function deleteMapMarker(id) {
     saveData();
     ymap && ymap.balloon.close();
     showToast('Точка удалена');
+}
+
+// Геолокация на карте
+function mapLocateMe() {
+    if (!ymap) { showToast('Карта ещё не загрузилась', 'error'); return; }
+    if (!navigator.geolocation) { alert('Геолокация не поддерживается'); return; }
+
+    const btn = $('#map-geo-btn');
+    btn.textContent = '⏳ Определение...';
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            ymap.setCenter([lat, lng], 14);
+
+            // Убрать старую метку местоположения
+            if (window._myLocationMark) {
+                ymap.geoObjects.remove(window._myLocationMark);
+            }
+
+            // Поставить метку моего местоположения
+            const MyLocLayout = ymaps.templateLayoutFactory.createClass(
+                '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
+            );
+            window._myLocationMark = new ymaps.Placemark([lat, lng], {
+                balloonContent: '<b>Вы здесь</b><br>' + lat.toFixed(5) + ', ' + lng.toFixed(5)
+            }, {
+                iconLayout: 'default#imageWithContent',
+                iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
+                iconImageSize: [32, 32],
+                iconImageOffset: [-16, -16],
+                iconContentOffset: [0, 0],
+                iconContentLayout: MyLocLayout
+            });
+            ymap.geoObjects.add(window._myLocationMark);
+            btn.textContent = '📍 Моё местоположение';
+            showToast('Местоположение найдено!');
+        },
+        (err) => {
+            let msg = 'Не удалось определить местоположение';
+            if (err.code === 1) msg = 'Разрешите доступ к геолокации';
+            alert(msg);
+            btn.textContent = '📍 Моё местоположение';
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
 }
 
 // ─── Экспорт/Импорт ───

@@ -545,6 +545,11 @@ form { padding: 16px; }
     gap: 8px;
 }
 .map-header h2 { margin: 0; }
+.map-header-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
 
 #map-container {
     width: 100%;
