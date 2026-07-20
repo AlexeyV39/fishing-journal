@@ -490,13 +490,21 @@ async function detectLocation() {
     btn.textContent = '⏳ Определение...';
     try {
         const pos = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
         });
-        const { latitude: lat, longitude: lon } = pos.coords;
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ru`);
-        const geoData = await geoRes.json();
-        const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.state || 'Москва';
+        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
 
+        // Определяем место через Nominatim
+        let locationName = '';
+        try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ru&zoom=14`);
+            const geoData = await geoRes.json();
+            const a = geoData.address;
+            locationName = a?.city || a?.town || a?.village || a?.hamlet || a?.county || a?.state || '';
+            if (!locationName && a?.road) locationName = a.road;
+        } catch (_) {}
+
+        // Погода по координатам напрямую
         const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
         const data = await wRes.json();
         const cur = data.current;
@@ -526,14 +534,30 @@ async function detectLocation() {
             $('#tomm-temp-max').textContent = `${Math.round(daily.temperature_2m_max[1])}°`;
         }
 
-        $('#weather-location').textContent = `📍 ${city}`;
+        const displayLocation = locationName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        $('#weather-location').textContent = `📍 ${displayLocation}`;
         $('#weather-loading').style.display = 'none';
         $('#weather-content').style.display = 'block';
         $('#weather-error').style.display = 'none';
         updateForecastFromWeather(cur);
-        settings.city = city;
+
+        settings.city = locationName || settings.city;
+        settings.lat = lat;
+        settings.lng = lon;
         saveData();
-        $('#default-city-input').value = city;
+        $('#default-city-input').value = settings.city;
+
+        showToast(`📍 ${displayLocation}`);
+    } catch (e) {
+        let msg = 'Не удалось определить местоположение';
+        if (e.code === 1) msg = 'Разрешите доступ к геолокации';
+        else if (e.code === 2) msg = 'Сигнал геолокации недоступен';
+        else if (e.code === 3) msg = 'Превышено время ожидания';
+        alert(msg);
+    }
+    btn.classList.remove('loading');
+    btn.textContent = '📍 Моя локация';
+}
         showToast(`Определено: ${city}`);
     } catch (e) {
         let msg = 'Не удалось определить местоположение';
@@ -544,7 +568,24 @@ async function detectLocation() {
     btn.textContent = '📍 Моя локация';
 }
 
-function wmoToEmoji(c) { if(c===0)return'☀️';if(c<=2)return'⛅';if(c===3)return'☁️';if(c===45||c===48)return'🌫️';if(c>=51&&c<=67)return'🌧️';if(c>=71&&c<=77)return'❄️';if(c>=80&&c<=82)return'🌦️';if(c>=85)return'❄️';if(c>=95)return'⛈️';return'🌤️'; }
+function wmoToEmoji(c) {
+    if (c === 0) return '☀️';          // Ясно
+    if (c === 1) return '🌤️';          // Малооблачно
+    if (c === 2) return '⛅';          // Облачно
+    if (c === 3) return '☁️';          // Пасмурно
+    if (c === 45 || c === 48) return '🌫️'; // Туман
+    if (c >= 51 && c <= 55) return '🌦️';   // Морось
+    if (c >= 56 && c <= 57) return '🌧️';   // Ледяная морось
+    if (c >= 61 && c <= 63) return '🌧️';   // Дождь
+    if (c === 65) return '🌧️';          // Сильный дождь
+    if (c >= 66 && c <= 67) return '🌧️';   // Ледяной дождь
+    if (c >= 71 && c <= 75) return '❄️';   // Снег
+    if (c === 77) return '❄️';          // Снежная крупа
+    if (c >= 80 && c <= 82) return '🌦️';   // Ливень
+    if (c >= 85 && c <= 86) return '❄️';   // Снегопад
+    if (c >= 95) return '⛈️';          // Гроза
+    return '🌤️';
+}
 function wmoToText(c) { if(c===0)return'Ясно';if(c<=2)return'Малооблачно';if(c===3)return'Пасмурно';if(c===45||c===48)return'Туман';if(c>=51&&c<=55)return'Морось';if(c>=61&&c<=65)return'Дождь';if(c>=71&&c<=75)return'Снег';if(c>=80&&c<=82)return'Ливень';if(c>=95)return'Гроза';return'Неизвестно'; }
 
 function updateForecastFromWeather(cur) {
@@ -812,19 +853,32 @@ function mapLocateMe() {
         (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
+            const accuracy = pos.coords.accuracy;
             ymap.setCenter([lat, lng], 14);
 
             // Убрать старую метку местоположения
             if (window._myLocationMark) {
                 ymap.geoObjects.remove(window._myLocationMark);
             }
+            if (window._myLocationCircle) {
+                ymap.geoObjects.remove(window._myLocationCircle);
+            }
 
-            // Поставить метку моего местоположения
+            // Круг точности
+            window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy], {}, {
+                fillColor: '#22c55e',
+                fillOpacity: 0.1,
+                strokeColor: '#22c55e',
+                strokeWidth: 1
+            });
+            ymap.geoObjects.add(window._myLocationCircle);
+
+            // Метка местоположения
             const MyLocLayout = ymaps.templateLayoutFactory.createClass(
                 '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
             );
             window._myLocationMark = new ymaps.Placemark([lat, lng], {
-                balloonContent: '<b>Вы здесь</b><br>' + lat.toFixed(5) + ', ' + lng.toFixed(5)
+                balloonContent: '<b>Вы здесь</b><br>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '<br>Точность: ±' + Math.round(accuracy) + ' м'
             }, {
                 iconLayout: 'default#imageWithContent',
                 iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
@@ -835,11 +889,13 @@ function mapLocateMe() {
             });
             ymap.geoObjects.add(window._myLocationMark);
             btn.textContent = '📍 Моё местоположение';
-            showToast('Местоположение найдено!');
+            showToast('📍 Местоположение определено! Точность: ±' + Math.round(accuracy) + ' м');
         },
         (err) => {
             let msg = 'Не удалось определить местоположение';
             if (err.code === 1) msg = 'Разрешите доступ к геолокации';
+            else if (err.code === 2) msg = 'Сигнал геолокации недоступен';
+            else if (err.code === 3) msg = 'Превышено время ожидания';
             alert(msg);
             btn.textContent = '📍 Моё местоположение';
         },
