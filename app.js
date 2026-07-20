@@ -558,15 +558,6 @@ async function detectLocation() {
     btn.classList.remove('loading');
     btn.textContent = '📍 Моя локация';
 }
-        showToast(`Определено: ${city}`);
-    } catch (e) {
-        let msg = 'Не удалось определить местоположение';
-        if (e.code === 1) msg = 'Разрешите доступ к геолокации';
-        alert(msg);
-    }
-    btn.classList.remove('loading');
-    btn.textContent = '📍 Моя локация';
-}
 
 function wmoToEmoji(c) {
     if (c === 0) return '☀️';          // Ясно
