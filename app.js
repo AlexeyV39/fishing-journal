@@ -678,55 +678,61 @@ function togglePlacingMarker() {
 
 function handleMarkerSubmit(e) {
     e.preventDefault();
+    const waterIdx = $('#water-body-select').value;
+    let fish = '';
+    if (waterIdx !== '') {
+        const wb = WATER_BODIES[parseInt(waterIdx)];
+        fish = wb.fish.join(', ');
+    }
     const marker = {
         id: genId(),
         lat: parseFloat($('#marker-lat').value),
         lng: parseFloat($('#marker-lng').value),
         name: $('#marker-name').value.trim(),
-        desc: $('#marker-desc').value.trim()
+        desc: $('#marker-desc').value.trim(),
+        fish: fish || null
     };
     mapMarkers.push(marker);
     addPlacemark(marker);
     saveData();
     $('#marker-modal').classList.remove('active');
+    $('#water-body-select').value = '';
+    $('#fish-info-group').style.display = 'none';
     showToast('Точка сохранена!');
 }
 
 function addPlacemark(m) {
     if (!ymap) return;
 
-    // Иконка-рыба
-    const fishIcon = new ymaps.Ico({
-        imageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="80">🐟</text></svg>'),
-        imageOffset: [-20, -20],
-        imageSize: [40, 40]
-    });
+    const MyIconLayout = ymaps.templateLayoutFactory.createClass(
+        '<div style="background:#2563eb;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">🐟</div>'
+    );
+
+    // Информация о рыбе из базы
+    let fishInfo = '';
+    const wb = WATER_BODIES.find(w => w.name === m.name);
+    if (wb) {
+        fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + wb.fish.join(', ') + '</div>';
+    } else if (m.fish) {
+        fishInfo = '<div style="margin-top:6px;padding:8px 10px;background:#eff6ff;border-radius:8px;font-size:.85rem;color:#1e40af;"><b>🐟 Какая рыба:</b><br>' + m.fish + '</div>';
+    }
 
     const placemark = new ymaps.Placemark([m.lat, m.lng], {
-        balloonContent: `
-            <div class="popup-title">${m.name}</div>
-            ${m.desc ? `<div class="popup-desc">${m.desc}</div>` : ''}
-            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;flex-direction:column;">
-                <a href="https://yandex.ru/maps/?ll=${m.lng},${m.lat}&z=15&pt=${m.lng},${m.lat},pm2rdm"
-                   target="_blank"
-                   style="display:inline-block;padding:6px 12px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-size:.85rem;text-align:center;">
-                   🗺 Открыть в Яндекс.Картах
-                </a>
-                <a href="yandexnavi://build_route_on_map?lat=${m.lat}&lon=${m.lng}&z=15"
-                   target="_blank"
-                   style="display:inline-block;padding:6px 12px;background:#00bfff;color:#fff;border-radius:6px;text-decoration:none;font-size:.85rem;text-align:center;">
-                   🚗 Построить маршрут в Навигаторе
-                </a>
-                <button onclick="deleteMapMarker('${m.id}')"
-                        style="padding:6px 12px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;text-align:center;">
-                   🗑 Удалить точку
-                </button>
-            </div>
-        `
+        balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">🐟 ' + m.name + '</div>'
+            + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
+            + fishInfo
+            + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
+            + '<a href="https://yandex.ru/maps/?ll=' + m.lng + ',' + m.lat + '&z=15&pt=' + m.lng + ',' + m.lat + ',pm2rdm" target="_blank" style="display:block;padding:8px 12px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;">🗺 Открыть в Яндекс.Картах</a>'
+            + '<a href="https://yandex.ru/maps/?rtext=' + m.lat + ',' + m.lng + '&rtt=auto" target="_blank" style="display:block;padding:8px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;">🚗 Навигатор</a>'
+            + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
+            + '</div>'
     }, {
-        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="80">🐟</text></svg>'),
-        iconImageSize: [40, 40],
-        iconImageOffset: [-20, -20]
+        iconLayout: 'default#imageWithContent',
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38"><circle cx="19" cy="19" r="17" fill="#2563eb" stroke="white" stroke-width="3"/></svg>'),
+        iconImageSize: [38, 38],
+        iconImageOffset: [-19, -19],
+        iconContentOffset: [0, 0],
+        iconContentLayout: MyIconLayout
     });
     ymap.geoObjects.add(placemark);
 }
