@@ -765,73 +765,138 @@ function updateSizeChart() {
 }
 
 // ─── Погода (Open-Meteo) ───
+const WEATHER_API = 'http://31.177.109.73:5000';
+
+function yandexWeatherToEmoji(phenomenon) {
+    const map = {
+        'ясно': '☀️', 'малооблачно': '🌤', 'переменная облачность': '⛅',
+        'облачно': '☁️', 'пасмурно': '☁️', 'облачно с прояснениями': '⛅',
+        'небольшой дождь': '🌦', 'дождь': '🌧', 'сильный дождь': '🌧',
+        'ливень': '🌧', 'гроза': '⛈', 'снег': '❄️', 'небольшой снег': '🌨',
+        'метель': '❄️', 'туман': '🌫', 'морось': '🌦',
+    };
+    const p = (phenomenon || '').toLowerCase();
+    for (const [key, emoji] of Object.entries(map)) {
+        if (p.includes(key)) return emoji;
+    }
+    if (p.includes('дождь')) return '🌧';
+    if (p.includes('снег')) return '❄️';
+    if (p.includes('облачн')) return '☁️';
+    return '🌤';
+}
+
+function yandexWindDir(deg) {
+    if (deg === undefined || deg === null) return '';
+    const dirs = ['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ'];
+    return dirs[Math.round(deg / 22.5) % 16];
+}
+
 async function loadWeather() {
     $('#weather-loading').style.display = 'block';
     $('#weather-content').style.display = 'none';
     $('#weather-error').style.display = 'none';
     try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city)}&count=1&language=ru&format=json`);
-        const geoData = await geoRes.json();
-        if (!geoData.results || !geoData.results.length) throw new Error(`Город "${settings.city}" не найден`);
-        const { latitude: lat, longitude: lon } = geoData.results[0];
+        const city = settings.city || 'Москва';
+        const res = await fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(city)}`);
+        if (!res.ok) throw new Error('Ошибка API');
+        const data = await res.json();
+        if (data.status === 'error') throw new Error(data.error || 'Ошибка данных');
+        const forecast = data.forecast;
+        if (!forecast || !forecast.days || !forecast.days.length) throw new Error('Нет данных');
+        const today = forecast.days[0];
+        const slots = today.time_slots || [];
 
-        // Попробовать ECMWF, если нет weather_code — fallback на стандартный API
-        let cur, daily;
-        try {
-            const ecmwfRes = await fetch(`https://api.open-meteo.com/v1/ecmwf?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&timezone=auto`);
-            const ecmwfData = await ecmwfRes.json();
-            if (ecmwfData.current && ecmwfData.current.weather_code !== undefined) {
-                cur = ecmwfData.current;
-            }
-        } catch(_) {}
+        // Определяем текущее время суток для выбора слота
+        const hour = new Date().getHours();
+        let slot;
+        if (hour >= 3 && hour < 9) slot = slots.find(s => s.time_of_day === 'утром');
+        else if (hour >= 9 && hour < 17) slot = slots.find(s => s.time_of_day === 'днем');
+        else if (hour >= 17 && hour < 22) slot = slots.find(s => s.time_of_day === 'вечером');
+        else slot = slots.find(s => s.time_of_day === 'ночью');
+        if (!slot) slot = slots[1] || slots[0] || {};
 
-        // Прогноз на 2 дня (для min/max температуры)
-        const dRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
-        const dData = await dRes.json();
+        // Мин/макс за день
+        const temps = slots.map(s => s.temperature).filter(Boolean);
+        const tempMin = Math.min(...temps);
+        const tempMax = Math.max(...temps);
 
-        // Использовать ECMWF если есть, иначе стандартный
-        if (!cur) cur = dData.current;
-        daily = dData.daily;
-
-        if (!cur) throw new Error('Данные погоды недоступны');
-
-        // Сегодня
-        $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
-        $('#today-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
-        $('#today-desc').textContent = wmoToText(cur.weather_code);
-        $('#today-feels').textContent = `Ощущается как ${Math.round(cur.apparent_temperature)}°C`;
-        $('#today-wind').textContent = `${cur.wind_speed_10m} м/с`;
-        $('#today-humidity').textContent = `${cur.relative_humidity_2m}%`;
-        $('#today-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-        $('#today-temp-min').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
-        $('#today-temp-max').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
-        if (cur.wind_direction_10m !== undefined) $('#today-wind-dir').textContent = degToDir(cur.wind_direction_10m);
-        const airT = cur.temperature_2m;
+        // Заполнить карточку погоды
+        $('#today-icon').textContent = yandexWeatherToEmoji(slot.weather_phenomenon);
+        $('#today-temp').textContent = `${slot.temperature}°C`;
+        $('#today-desc').textContent = slot.weather_phenomenon || '—';
+        $('#today-feels').textContent = `Ощущается как ${slot.perceived_temperature || slot.temperature}°C`;
+        $('#today-wind').textContent = `${slot.wind_speed || '—'} м/с`;
+        $('#today-humidity').textContent = `${slot.humidity || '—'}%`;
+        $('#today-pressure').textContent = `${slot.pressure || '—'} мм`;
+        $('#today-temp-min').textContent = `${tempMin}°`;
+        $('#today-temp-max').textContent = `${tempMax}°`;
+        $('#today-wind-dir').textContent = '';
+        const airT = slot.temperature;
         $('#today-water-temp').textContent = `${airT > 10 ? Math.round(airT - 3) : Math.round(airT + 1)}°C`;
 
-        lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
+        lastWeatherData = {
+            temp: slot.temperature,
+            pressure: slot.pressure,
+            wind: parseFloat(slot.wind_speed) || 0,
+            humidity: slot.humidity
+        };
 
-        // Восход/закат солнца
+        // Восход/закат солнца (алгоритм NOAA)
+        const lat = settings.lat || 55.75;
+        const lon = settings.lng || 37.62;
         const sunTimes = calcSunRiseSet(new Date(), lat, lon);
-        const sunRiseEl = $('#sunrise-time');
-        const sunSetEl = $('#sunset-time');
-        if (sunRiseEl) sunRiseEl.textContent = sunTimes.rise;
-        if (sunSetEl) sunSetEl.textContent = sunTimes.set;
+        if ($('#sunrise-time')) $('#sunrise-time').textContent = sunTimes.rise;
+        if ($('#sunset-time')) $('#sunset-time').textContent = sunTimes.set;
 
-        // Сохранить координаты для 7-дневного прогноза
-        settings.lat = lat;
-        settings.lng = lon;
         saveData();
 
-        $('#weather-location').textContent = `📍 ${settings.city}`;
+        $('#weather-location').textContent = `📍 ${city}`;
         $('#weather-loading').style.display = 'none';
         $('#weather-content').style.display = 'block';
-        updateForecastFromWeather(cur);
+        updateForecastFromWeather({ temperature_2m: slot.temperature, relative_humidity_2m: slot.humidity, weather_code: 0, wind_speed_10m: parseFloat(slot.wind_speed) || 0 });
     } catch (e) {
-        $('#weather-loading').style.display = 'none';
-        $('#weather-error').style.display = 'block';
-        $('#weather-error p').textContent = `Ошибка: ${e.message}`;
+        console.error('Weather error:', e);
+        // Fallback на Open-Meteo
+        try {
+            await loadWeatherOpenMeteo();
+        } catch (e2) {
+            $('#weather-loading').style.display = 'none';
+            $('#weather-error').style.display = 'block';
+            $('#weather-error p').textContent = `Ошибка: ${e.message}`;
+        }
     }
+}
+
+async function loadWeatherOpenMeteo() {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(settings.city || 'Москва')}&count=1&language=ru&format=json`);
+    const geoData = await geoRes.json();
+    if (!geoData.results || !geoData.results.length) throw new Error('Город не найден');
+    const { latitude: lat, longitude: lon } = geoData.results[0];
+    const dRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
+    const dData = await dRes.json();
+    const cur = dData.current;
+    const daily = dData.daily;
+    if (!cur) throw new Error('Данные недоступны');
+    $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
+    $('#today-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
+    $('#today-desc').textContent = wmoToText(cur.weather_code);
+    $('#today-feels').textContent = `Ощущается как ${Math.round(cur.apparent_temperature)}°C`;
+    $('#today-wind').textContent = `${cur.wind_speed_10m} м/с`;
+    $('#today-humidity').textContent = `${cur.relative_humidity_2m}%`;
+    $('#today-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
+    $('#today-temp-min').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
+    $('#today-temp-max').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
+    if (cur.wind_direction_10m !== undefined) $('#today-wind-dir').textContent = degToDir(cur.wind_direction_10m);
+    const airT = cur.temperature_2m;
+    $('#today-water-temp').textContent = `${airT > 10 ? Math.round(airT - 3) : Math.round(airT + 1)}°C`;
+    lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
+    settings.lat = lat;
+    settings.lng = lon;
+    saveData();
+    $('#weather-location').textContent = `📍 ${settings.city || 'Москва'}`;
+    $('#weather-loading').style.display = 'none';
+    $('#weather-content').style.display = 'block';
+    updateForecastFromWeather(cur);
 }
 
 // ─── Погода на 7 дней ───
@@ -842,37 +907,36 @@ async function openWeekForecast() {
     modal.classList.add('active');
     list.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p>Загрузка...</p></div>';
 
-    const lat = settings.lat;
-    const lng = settings.lng;
-    if (!lat || !lng) {
-        list.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text2);">Определите местоположение</p>';
-        return;
-    }
-
-    locEl.textContent = `📍 ${settings.city}`;
+    locEl.textContent = `📍 ${settings.city || 'Москва'}`;
 
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`);
+        const city = settings.city || 'Москва';
+        const res = await fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(city)}`);
         if (!res.ok) throw new Error('Ошибка API');
         const data = await res.json();
-        const d = data.daily;
+        if (data.status === 'error') throw new Error(data.error);
+        const days = data.forecast.days || [];
 
         const DAYS_RU_SHORT = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
         const MONTHS_SHORT_RU = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
         const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
 
-        list.innerHTML = d.time.map((dateStr, i) => {
-            const date = new Date(dateStr + 'T12:00:00');
-            const isToday = dateStr === todayStr;
+        list.innerHTML = days.map((day, i) => {
+            const date = new Date(day.date);
+            const isToday = i === 0;
             const dayName = isToday ? 'Сегодня' : DAYS_RU_SHORT[date.getDay()];
             const dateLabel = date.getDate() + ' ' + MONTHS_SHORT_RU[date.getMonth()];
-            const max = Math.round(d.temperature_2m_max[i]);
-            const min = Math.round(d.temperature_2m_min[i]);
-            const emoji = wmoToEmoji(d.weather_code[i]);
-            const desc = wmoToText(d.weather_code[i]);
-            const precip = d.precipitation_sum[i] || 0;
-            const wind = Math.round(d.wind_speed_10m_max[i]);
+            const slots = day.time_slots || [];
+            const temps = slots.map(s => s.temperature).filter(Boolean);
+            const max = Math.max(...temps);
+            const min = Math.min(...temps);
+            // Берём погоду днём
+            const daySlot = slots.find(s => s.time_of_day === 'днем') || slots[1] || slots[0] || {};
+            const emoji = yandexWeatherToEmoji(daySlot.weather_phenomenon);
+            const desc = daySlot.weather_phenomenon || '—';
+            const wind = daySlot.wind_speed || '—';
+            const pressure = daySlot.pressure || '—';
+            const magnetic = day.magnetic_field_status || '';
 
             return `<div class="week-day-card${isToday ? ' today' : ''}">
                 <div class="week-day-name">${dayName}<small>${dateLabel}</small></div>
@@ -884,15 +948,14 @@ async function openWeekForecast() {
                     <div class="week-day-desc">${desc}</div>
                 </div>
                 <div class="week-day-extras">
-                    <span>💧${precip}мм</span>
                     <span>💨${wind}</span>
+                    <span>📊${pressure}</span>
+                    ${magnetic ? `<span>🧲</span>` : ''}
                 </div>
             </div>`;
         }).join('');
-        // Загрузить почасовой прогноз
-        loadHourlyForecast();
     } catch (e) {
-        list.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">Ошибка загрузки: ${e.message}</p>`;
+        list.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">Ошибка: ${e.message}</p>`;
     }
 }
 
@@ -912,7 +975,7 @@ async function detectLocation() {
         });
         const { latitude: lat, longitude: lon, accuracy } = pos.coords;
 
-        // Определяем место через Nominatim
+        // Определяем город через Nominatim
         let locationName = '';
         try {
             const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ru&zoom=14`);
@@ -922,42 +985,16 @@ async function detectLocation() {
             if (!locationName && a?.road) locationName = a.road;
         } catch (_) {}
 
-        // Погода по координатам напрямую
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
-        const data = await wRes.json();
-        const cur = data.current;
-        const daily = data.daily;
-
-        // Сегодня
-        $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
-        $('#today-temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
-        $('#today-desc').textContent = wmoToText(cur.weather_code);
-        $('#today-feels').textContent = `Ощущается как ${Math.round(cur.apparent_temperature)}°C`;
-        $('#today-wind').textContent = `${cur.wind_speed_10m} м/с`;
-        $('#today-humidity').textContent = `${cur.relative_humidity_2m}%`;
-        $('#today-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-        $('#today-temp-min').textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
-        $('#today-temp-max').textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
-        if (cur.wind_direction_10m !== undefined) $('#today-wind-dir').textContent = degToDir(cur.wind_direction_10m);
-        const airT = cur.temperature_2m;
-        $('#today-water-temp').textContent = `${airT > 10 ? Math.round(airT - 3) : Math.round(airT + 1)}°C`;
-
-        lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
-
-        const displayLocation = locationName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        $('#weather-location').textContent = `📍 ${displayLocation}`;
-        $('#weather-loading').style.display = 'none';
-        $('#weather-content').style.display = 'block';
-        $('#weather-error').style.display = 'none';
-        updateForecastFromWeather(cur);
-
         settings.city = locationName || settings.city;
         settings.lat = lat;
         settings.lng = lon;
         saveData();
         $('#default-city-input').value = settings.city;
 
-        showToast(`📍 ${displayLocation}`);
+        // Загрузить погоду через Яндекс API
+        await loadWeather();
+
+        showToast(`📍 ${locationName || lat.toFixed(4) + ', ' + lon.toFixed(4)}`);
     } catch (e) {
         let msg = 'Не удалось определить местоположение';
         if (e.code === 1) msg = 'Разрешите доступ к геолокации';
