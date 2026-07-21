@@ -765,7 +765,7 @@ function updateSizeChart() {
 }
 
 // ─── Погода (Open-Meteo) ───
-const WEATHER_API = 'https://31.177.109.73';
+const WEATHER_API = '';
 
 function yandexWeatherToEmoji(phenomenon) {
     const map = {
