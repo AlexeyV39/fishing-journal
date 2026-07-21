@@ -1244,6 +1244,7 @@ async function searchAddresses(query) {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=8&accept-language=ru&addressdetails=1`);
         const data = await res.json();
         _searchResults = data;
+        window._searchResults = data;
 
         if (!data.length) {
             dropdown.innerHTML = '<div class="search-loading">Ничего не найдено</div>';
