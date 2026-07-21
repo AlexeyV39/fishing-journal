@@ -341,12 +341,8 @@
                 <button class="moon-toggle-btn" id="moon-toggle-phases" onclick="switchMoonView('phases')">Фазы</button>
             </div>
 
-            <!-- Навигация по месяцам -->
-            <div class="calendar-nav">
-                <button class="btn btn-icon" id="prev-month">◀</button>
-                <h3 id="calendar-month-year">Июль 2026</h3>
-                <button class="btn btn-icon" id="next-month">▶</button>
-            </div>
+            <!-- Навигация по месяцам (горизонтальные табы) -->
+            <div class="moon-months-scroll" id="moon-months-scroll"></div>
 
             <!-- Режим: Дни -->
             <div id="moon-view-days">
@@ -661,7 +657,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '15';
+        const APP_VER = '16';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

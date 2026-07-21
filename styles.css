@@ -1431,6 +1431,109 @@ form { padding: 16px; }
 .auth-loading { margin-top: 16px; }
 .auth-screen.hidden { display: none; }
 
+/* ─── MOON CALENDAR ─── */
+.moon-today-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+}
+.moon-today-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+.moon-today-emoji { font-size: 3rem; flex-shrink: 0; }
+.moon-today-date { font-size: .85rem; color: var(--text2); margin-bottom: 2px; }
+.moon-today-phase { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.moon-today-details {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.moon-detail {
+    text-align: center;
+    padding: 10px 4px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+}
+.moon-detail-label { display: block; font-size: .7rem; color: var(--text2); margin-bottom: 2px; }
+.moon-detail-value { display: block; font-size: .9rem; font-weight: 600; color: var(--text); }
+
+.moon-months-scroll {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 4px 0 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.moon-months-scroll::-webkit-scrollbar { display: none; }
+.moon-month-tab {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border: none;
+    background: var(--bg);
+    border-radius: 20px;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .2s;
+}
+.moon-month-tab.active { background: var(--text); color: #fff; font-weight: 600; }
+
+.moon-view-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 3px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+.moon-toggle-btn {
+    padding: 7px 20px;
+    border: none;
+    background: none;
+    border-radius: 18px;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .2s;
+}
+.moon-toggle-btn.active {
+    background: var(--card);
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: var(--shadow);
+}
+
+.moon-phases-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.moon-phase-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px 12px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    transition: all .2s;
+}
+.moon-phase-card.current { border-color: var(--primary); background: var(--primary-light); }
+.moon-phase-emoji { font-size: 2.8rem; margin-bottom: 8px; }
+.moon-phase-name { font-size: .85rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.moon-phase-dates { font-size: .75rem; color: var(--text2); }
+
 /* ─── DRAWER OVERLAY ─── */
 .drawer-overlay {
     position: fixed;

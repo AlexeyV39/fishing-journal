@@ -355,9 +355,8 @@ function setupEvents() {
     $('#cancel-delete-btn').addEventListener('click', closeDeleteModal);
     $('#confirm-delete-btn').addEventListener('click', confirmDelete);
 
-    // Календарь
-    $('#prev-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); if (_moonView === 'phases') renderMoonPhases(); });
-    $('#next-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); if (_moonView === 'phases') renderMoonPhases(); });
+    // Календарь (табы месяцев)
+    renderMonthTabs();
 
     // Геолокация
     $('#geo-btn').addEventListener('click', detectLocation);
@@ -1173,9 +1172,38 @@ function getMoonPhase(date) {
 }
 
 // ─── Календарь клёва ───
+function renderMonthTabs() {
+    const container = $('#moon-months-scroll');
+    if (!container) return;
+    const now = new Date();
+    const currentMonth = calendarDate.getMonth();
+    const currentYear = calendarDate.getFullYear();
+
+    // Показываем 12 месяцев начиная с -3 от текущего
+    const months = [];
+    for (let i = -3; i <= 8; i++) {
+        const m = new Date(currentYear, currentMonth + i, 1);
+        months.push({ month: m.getMonth(), year: m.getFullYear(), name: MONTHS_SHORT[m.getMonth()] });
+    }
+
+    container.innerHTML = months.map(m => {
+        const isActive = m.month === currentMonth && m.year === currentYear;
+        return `<button class="moon-month-tab${isActive ? ' active' : ''}" onclick="goToMonth(${m.year},${m.month})">${m.name}</button>`;
+    }).join('');
+
+    // Прокрутить к активному табу
+    const activeTab = container.querySelector('.active');
+    if (activeTab) activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function goToMonth(year, month) {
+    calendarDate = new Date(year, month, 1);
+    renderCalendar();
+    if (_moonView === 'phases') renderMoonPhases();
+}
+
 function renderCalendar() {
     const year = calendarDate.getFullYear(), month = calendarDate.getMonth();
-    $('#calendar-month-year').textContent = `${MONTHS_RU[month]} ${year}`;
     const grid = $('#calendar-grid');
     grid.innerHTML = '';
     DAYS_RU.forEach(d => { grid.innerHTML += `<div class="cal-header">${d}</div>`; });
