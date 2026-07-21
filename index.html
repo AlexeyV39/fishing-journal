@@ -12,8 +12,40 @@
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
+    <!-- Экран авторизации -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="auth-card">
+            <div class="auth-logo">🎣</div>
+            <h1>Рыболовный журнал</h1>
+            <p class="auth-subtitle">Войдите, чтобы синхронизировать данные между устройствами</p>
+
+            <div id="auth-form-login">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="auth-email" placeholder="mail@example.com" class="setting-input">
+                </div>
+                <div class="form-group">
+                    <label>Пароль</label>
+                    <input type="password" id="auth-password" placeholder="Минимум 6 символов" class="setting-input">
+                </div>
+                <button class="btn btn-primary auth-btn" id="auth-login-btn">Войти</button>
+                <button class="btn btn-secondary auth-btn" id="auth-register-btn">Создать аккаунт</button>
+                <div class="auth-divider"><span>или</span></div>
+                <button class="btn btn-secondary auth-btn" id="auth-anon-btn">⚡ Без аккаунта (только на этом устройстве)</button>
+            </div>
+
+            <div id="auth-error" class="auth-error" style="display:none;"></div>
+            <div id="auth-loading" class="auth-loading" style="display:none;"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- Основное приложение -->
     <header class="header">
         <h1>🎣 Рыболовный журнал</h1>
         <nav class="nav">
@@ -311,6 +343,11 @@
                     <p class="setting-desc">Уведомления о хорошем клёве</p>
                     <button class="btn btn-primary" id="enable-notif-btn">🔔 Включить уведомления</button>
                 </div>
+                <div class="setting-item">
+                    <label>Аккаунт</label>
+                    <p class="setting-desc" id="auth-status">Загрузка...</p>
+                    <button class="btn btn-danger" id="logout-btn">🚪 Выйти</button>
+                </div>
             </div>
         </section>
     </main>
@@ -535,7 +572,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '10';
+        const APP_VER = '11';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

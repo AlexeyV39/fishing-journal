@@ -1,3 +1,19 @@
+// ─── Firebase ───
+const firebaseConfig = {
+    apiKey: "AIzaSyApqGTDgPeg8L2025WkpuyEwItP5AuHTkA",
+    authDomain: "fishing-journal-fe36a.firebaseapp.com",
+    projectId: "fishing-journal-fe36a",
+    storageBucket: "fishing-journal-fe36a.firebasestorage.app",
+    messagingSenderId: "735536109139",
+    appId: "1:735536109139:web:f22363a81c8b1ad0ba98a6"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let currentUser = null;
+let unsubscribeCatches = null;
+let unsubscribeMarkers = null;
+
 // ─── Константы ───
 const STORAGE_KEY = 'fishing_journal';
 const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
@@ -130,9 +146,85 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 // ─── Инициализация ───
 document.addEventListener('DOMContentLoaded', () => {
-    loadData();
     setupEvents();
     setDefaultDate();
+    setupAuth();
+});
+
+// ─── Авторизация ───
+function setupAuth() {
+    const loginBtn = $('#auth-login-btn');
+    const registerBtn = $('#auth-register-btn');
+    const anonBtn = $('#auth-anon-btn');
+
+    loginBtn.addEventListener('click', () => authWithEmail('login'));
+    registerBtn.addEventListener('click', () => authWithEmail('register'));
+    anonBtn.addEventListener('click', authAnon);
+
+    // Enter на полях
+    $('#auth-password').addEventListener('keydown', (e) => { if (e.key === 'Enter') authWithEmail('login'); });
+
+    // Слушатель состояния авторизации
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user;
+            $('#auth-screen').classList.add('hidden');
+            initApp();
+        } else {
+            currentUser = null;
+            $('#auth-screen').classList.remove('hidden');
+        }
+    });
+}
+
+async function authWithEmail(mode) {
+    const email = $('#auth-email').value.trim();
+    const password = $('#auth-password').value;
+    const errorEl = $('#auth-error');
+    const loadingEl = $('#auth-loading');
+
+    if (!email || !password) { showAuthError('Введите email и пароль'); return; }
+    if (password.length < 6) { showAuthError('Пароль минимум 6 символов'); return; }
+
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+
+    try {
+        if (mode === 'register') {
+            await auth.createUserWithEmailAndPassword(email, password);
+        } else {
+            await auth.signInWithEmailAndPassword(email, password);
+        }
+    } catch (e) {
+        const messages = {
+            'auth/user-not-found': 'Пользователь не найден',
+            'auth/wrong-password': 'Неверный пароль',
+            'auth/email-already-in-use': 'Этот email уже зарегистрирован',
+            'auth/invalid-email': 'Некорректный email',
+            'auth/weak-password': 'Пароль слишком простой (минимум 6 символов)',
+        };
+        showAuthError(messages[e.code] || e.message);
+    }
+    loadingEl.style.display = 'none';
+}
+
+async function authAnon() {
+    try {
+        await auth.signInAnonymously();
+    } catch (e) {
+        showAuthError(e.message);
+    }
+}
+
+function showAuthError(msg) {
+    const el = $('#auth-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+// ─── Инициализация приложения после входа ───
+function initApp() {
+    loadData();
     // Восстановить вкладку
     const savedTab = localStorage.getItem(STORAGE_KEY + '_tab') || 'dashboard';
     switchTab(savedTab);
@@ -143,9 +235,22 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCalendar();
     requestNotificationPermission();
     checkFishingAlerts();
-});
+    // Показать статус аккаунта
+    if (currentUser) {
+        const statusEl = $('#auth-status');
+        if (statusEl) {
+            statusEl.textContent = currentUser.isAnonymous
+                ? '⚡ Анонимный вход (данные только на этом устройстве)'
+                : '✅ ' + currentUser.email;
+        }
+    }
+    // Подписаться на изменения из Firestore
+    if (currentUser && !currentUser.isAnonymous) {
+        subscribeToFirestore();
+    }
+}
 
-// ─── Хранилище ───
+// ─── Хранилище (localStorage + Firestore) ───
 function loadData() {
     try {
         const d = localStorage.getItem(STORAGE_KEY);
@@ -167,8 +272,48 @@ function saveData() {
         localStorage.setItem(STORAGE_KEY + '_markers', JSON.stringify(mapMarkers));
     } catch(e) {
         console.error('Save error:', e);
-        showToast('Ошибка сохранения! Возможно, память переполнена.', 'error');
+        showToast('Ошибка сохранения!', 'error');
     }
+    // Синхронизировать в Firestore
+    syncToFirestore();
+}
+
+// ─── Firestore синхронизация ───
+function syncToFirestore() {
+    if (!currentUser || currentUser.isAnonymous) return;
+    const uid = currentUser.uid;
+    const userDoc = db.collection('users').doc(uid);
+
+    userDoc.set({
+        catches: catches,
+        markers: mapMarkers,
+        settings: settings,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(e => console.error('Firestore sync error:', e));
+}
+
+function subscribeToFirestore() {
+    if (!currentUser || currentUser.isAnonymous) return;
+    const uid = currentUser.uid;
+
+    unsubscribeCatches = db.collection('users').doc(uid).onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data.catches) {
+                catches = data.catches;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(catches));
+                updateAll();
+            }
+            if (data.markers) {
+                mapMarkers = data.markers;
+                localStorage.setItem(STORAGE_KEY + '_markers', JSON.stringify(mapMarkers));
+            }
+            if (data.settings) {
+                settings = { ...settings, ...data.settings };
+                localStorage.setItem(STORAGE_KEY + '_settings', JSON.stringify(settings));
+            }
+        }
+    }, e => console.error('Firestore subscribe error:', e));
 }
 
 // ─── Toast уведомления ───
@@ -242,6 +387,15 @@ function setupEvents() {
     });
     $('#clear-data').addEventListener('click', () => {
         if (confirm('Удалить ВСЕ данные?')) { catches = []; mapMarkers = []; saveData(); updateAll(); showToast('Данные удалены'); }
+    });
+
+    // Выход
+    $('#logout-btn').addEventListener('click', async () => {
+        if (confirm('Выйти из аккаунта? Данные останутся на этом устройстве.')) {
+            if (unsubscribeCatches) unsubscribeCatches();
+            if (unsubscribeMarkers) unsubscribeMarkers();
+            await auth.signOut();
+        }
     });
 
     // Карта
