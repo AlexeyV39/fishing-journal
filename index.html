@@ -97,6 +97,7 @@
                 <button class="nav-btn" data-tab="journal" onclick="topNav('journal')">Уловы</button>
                 <button class="nav-btn" data-tab="map" onclick="topNav('map')">Карта</button>
                 <button class="nav-btn" data-tab="calendar" onclick="topNav('calendar')">Календарь</button>
+                <button class="nav-btn" data-tab="game" onclick="topNav('game')">🎮 Игра</button>
             </nav>
         </div>
     </header>
@@ -314,18 +315,51 @@
 
         <!-- Календарь клёва -->
         <section id="calendar" class="tab-content">
-            <h2>Календарь клёва</h2>
+            <!-- Подробная информация о луне сегодня -->
+            <div class="moon-today-card" id="moon-today-card">
+                <div class="moon-today-header">
+                    <span class="moon-today-emoji" id="moon-today-emoji">🌑</span>
+                    <div>
+                        <div class="moon-today-date" id="moon-today-date">Сегодня</div>
+                        <div class="moon-today-phase" id="moon-today-phase">Загрузка...</div>
+                    </div>
+                </div>
+                <div class="moon-today-details">
+                    <div class="moon-detail"><span class="moon-detail-label">Видимость</span><span class="moon-detail-value" id="moon-visibility">—</span></div>
+                    <div class="moon-detail"><span class="moon-detail-label">Возраст</span><span class="moon-detail-value" id="moon-age">—</span></div>
+                    <div class="moon-detail"><span class="moon-detail-label">Восход</span><span class="moon-detail-value" id="moonrise">—</span></div>
+                    <div class="moon-detail"><span class="moon-detail-label">Закат</span><span class="moon-detail-value" id="moonset">—</span></div>
+                </div>
+            </div>
+
+            <!-- Переключатель Дни/Фазы -->
+            <div class="moon-view-toggle">
+                <button class="moon-toggle-btn active" id="moon-toggle-days" onclick="switchMoonView('days')">Дни</button>
+                <button class="moon-toggle-btn" id="moon-toggle-phases" onclick="switchMoonView('phases')">Фазы</button>
+            </div>
+
+            <!-- Навигация по месяцам -->
             <div class="calendar-nav">
                 <button class="btn btn-icon" id="prev-month">◀</button>
                 <h3 id="calendar-month-year">Июль 2026</h3>
                 <button class="btn btn-icon" id="next-month">▶</button>
             </div>
-            <div class="calendar-grid" id="calendar-grid"></div>
-            <div class="calendar-legend">
-                <div class="legend-item"><span class="legend-color good"></span> Отличный</div>
-                <div class="legend-item"><span class="legend-color medium"></span> Средний</div>
-                <div class="legend-item"><span class="legend-color bad"></span> Слабый</div>
+
+            <!-- Режим: Дни -->
+            <div id="moon-view-days">
+                <div class="calendar-grid" id="calendar-grid"></div>
+                <div class="calendar-legend">
+                    <div class="legend-item"><span class="legend-color good"></span> Отличный</div>
+                    <div class="legend-item"><span class="legend-color medium"></span> Средний</div>
+                    <div class="legend-item"><span class="legend-color bad"></span> Слабый</div>
+                </div>
             </div>
+
+            <!-- Режим: Фазы -->
+            <div id="moon-view-phases" style="display:none;">
+                <div id="moon-phases-grid" class="moon-phases-grid"></div>
+            </div>
+
             <div class="card calendar-tips" id="calendar-tips">
                 <h3>Совет дня</h3>
                 <p id="tips-text">Выберите дату для получения совета</p>
@@ -614,7 +648,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '13';
+        const APP_VER = '14';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

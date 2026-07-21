@@ -356,8 +356,8 @@ function setupEvents() {
     $('#confirm-delete-btn').addEventListener('click', confirmDelete);
 
     // Календарь
-    $('#prev-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); });
-    $('#next-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); });
+    $('#prev-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()-1); renderCalendar(); if (_moonView === 'phases') renderMoonPhases(); });
+    $('#next-month').addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth()+1); renderCalendar(); if (_moonView === 'phases') renderMoonPhases(); });
 
     // Геолокация
     $('#geo-btn').addEventListener('click', detectLocation);
@@ -1017,12 +1017,150 @@ function getMoonFactor(p) { if(p<0.1||p>0.9)return 0.7; if(p>=0.45&&p<=0.55)retu
 function getSeasonFactor(m) { return [0.2,0.2,0.3,0.5,0.7,0.9,1.0,0.95,0.8,0.6,0.3,0.2][m]; }
 
 function calcMoonPhase() {
-    const phase = getMoonPhase(new Date());
+    const now = new Date();
+    const phase = getMoonPhase(now);
     const emojis = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-    const names = ['Новолуние','Растущая луна','Первая четверть','Растущая луна','Полнолуние','Убывающая луна','Последняя четверть','Убывающая луна'];
+    const names = ['Новолуние','Растущая луна (четверть)','Первая четверть','Растущая луна (прибывающая)','Полнолуние','Убывающая луна (прибывающая)','Последняя четверть','Убывающая луна (четверть)'];
+    const shortNames = ['Новолуние','Растущая','1/4','Растущая','Полнолуние','Убывающая','Посл. четверть','Убывающая'];
     const idx = Math.round(phase * 8) % 8;
+
+    // Дашборд
     $('#moon-icon').textContent = emojis[idx];
-    $('#moon-text').textContent = `${names[idx]} (${Math.round(phase*100)}%)`;
+    $('#moon-text').textContent = `${shortNames[idx]} (${Math.round(phase*100)}%)`;
+
+    // Карточка "Сегодня" в календаре
+    const emojiEl = $('#moon-today-emoji');
+    const phaseEl = $('#moon-today-phase');
+    const dateEl = $('#moon-today-date');
+    const visEl = $('#moon-visibility');
+    const ageEl = $('#moon-age');
+    const riseEl = $('#moonrise');
+    const setEl = $('#moonset');
+
+    if (emojiEl) {
+        const DAYS_RU_FULL = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+        const dayName = DAYS_RU_FULL[now.getDay()];
+        const monthName = MONTHS_RU[now.getMonth()].toLowerCase();
+        dateEl.textContent = `Сегодня, ${now.getDate()} ${monthName}`;
+        phaseEl.textContent = names[idx];
+        emojiEl.textContent = emojis[idx];
+        visEl.textContent = Math.round(phase * 100) + '%';
+
+        // Возраст луны (дни от новолуния)
+        const moonAge = Math.round(phase * 29.53);
+        ageEl.textContent = moonAge + ' дн.';
+
+        // Восход/закат луны (приблизительный расчёт)
+        const riseSet = calcMoonRiseSet(now, settings.lat || 55.75, settings.lng || 37.62);
+        riseEl.textContent = riseSet.rise;
+        setEl.textContent = riseSet.set;
+    }
+}
+
+function calcMoonRiseSet(date, lat, lng) {
+    // Приблизительный расчёт восхода/заката луны
+    const phase = getMoonPhase(date);
+    // Луна в среднем опаздывает на ~50 минут каждый день
+    // Новолуние: восход ≈ восходу солнца, закат ≈ закату солнца
+    const year = date.getFullYear(), month = date.getMonth(), day = date.getDate();
+
+    // Приблизительное время восхода/заката солнца для широты ~55°N
+    const sunRise = month >= 3 && month <= 8 ? 4.5 + (month < 6 ? month * 0.3 : (8 - month) * 0.3) : 7.5 - month * 0.3;
+    const sunSet = month >= 3 && month <= 8 ? 19.5 + (month < 6 ? month * 0.1 : (8 - month) * 0.1) : 16.5 + month * 0.2;
+
+    // Луна опаздывает относительно солнца на phase * 24 часа (приблизительно)
+    const moonDelay = phase * 24;
+    let riseHour = (sunRise + moonDelay) % 24;
+    let setHour = (sunSet + moonDelay) % 24;
+
+    // Корректировка для экстремальных фаз
+    if (phase < 0.1 || phase > 0.9) { // Новолуние - луна рядом с солнцем
+        riseHour = sunRise + 0.3;
+        setHour = sunSet - 0.3;
+    } else if (phase > 0.45 && phase < 0.55) { // Полнолуние - луна против солнца
+        riseHour = sunSet - 0.5;
+        setHour = (sunRise + 24 - 0.5) % 24;
+    }
+
+    const fmtH = (h) => {
+        const hh = Math.floor(h) % 24;
+        const mm = Math.round((h - Math.floor(h)) * 60) % 60;
+        return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    };
+
+    return { rise: fmtH(riseHour), set: fmtH(setHour) };
+}
+
+// ─── Лунный календарь: переключение видов ───
+let _moonView = 'days';
+
+function switchMoonView(view) {
+    _moonView = view;
+    $('#moon-view-days').style.display = view === 'days' ? 'block' : 'none';
+    $('#moon-view-phases').style.display = view === 'phases' ? 'block' : 'none';
+    $('#moon-toggle-days').classList.toggle('active', view === 'days');
+    $('#moon-toggle-phases').classList.toggle('active', view === 'phases');
+    if (view === 'phases') renderMoonPhases();
+}
+
+function renderMoonPhases() {
+    const grid = $('#moon-phases-grid');
+    if (!grid) return;
+    const year = calendarDate.getFullYear(), month = calendarDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+
+    // Определяем фазы для каждого дня
+    const phases = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const phase = getMoonPhase(date);
+        phases.push({ day: d, date, phase });
+    }
+
+    // Группируем последовательные дни с одной фазой
+    const phaseGroups = [];
+    let currentGroup = { start: 1, end: 1, phase: phases[0].phase, emoji: getPhaseEmoji(phases[0].phase), name: getPhaseName(phases[0].phase) };
+
+    for (let i = 1; i < phases.length; i++) {
+        const pIdx = getPhaseIndex(phases[i].phase);
+        const cIdx = getPhaseIndex(currentGroup.phase);
+        if (pIdx === cIdx || (pIdx + 1) % 8 === cIdx || (cIdx + 1) % 8 === pIdx) {
+            currentGroup.end = phases[i].day;
+            currentGroup.phase = phases[i].phase;
+            currentGroup.emoji = getPhaseEmoji(phases[i].phase);
+            currentGroup.name = getPhaseName(phases[i].phase);
+        } else {
+            phaseGroups.push(currentGroup);
+            currentGroup = { start: phases[i].day, end: phases[i].day, phase: phases[i].phase, emoji: getPhaseEmoji(phases[i].phase), name: getPhaseName(phases[i].phase) };
+        }
+    }
+    phaseGroups.push(currentGroup);
+
+    // Проверяем является ли какой-то группой текущей фазой
+    const todayPhase = today.getFullYear() === year && today.getMonth() === month ? today.getDate() : -1;
+
+    grid.innerHTML = phaseGroups.map(g => {
+        const isCurrent = todayPhase >= g.start && todayPhase <= g.end;
+        const monthShort = MONTHS_SHORT[month].toLowerCase();
+        const dateStr = g.start === g.end
+            ? `${g.start} ${monthShort}`
+            : `${g.start}–${g.end} ${monthShort}`;
+        const pct = Math.round(g.phase * 100);
+        return `<div class="moon-phase-card${isCurrent ? ' current' : ''}">
+            <div class="moon-phase-emoji">${g.emoji}</div>
+            <div class="moon-phase-name">${g.name}</div>
+            <div class="moon-phase-dates">${dateStr}</div>
+            <div class="moon-phase-pct">${pct}%</div>
+        </div>`;
+    }).join('');
+}
+
+function getPhaseIndex(phase) { return Math.round(phase * 8) % 8; }
+function getPhaseEmoji(phase) { return ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][getPhaseIndex(phase)]; }
+function getPhaseName(phase) {
+    const names = ['Новолуние','Растущая луна','Первая четверть','Растущая луна','Полнолуние','Убывающая луна','Последняя четверть','Убывающая луна'];
+    return names[getPhaseIndex(phase)];
 }
 
 function getMoonPhase(date) {
