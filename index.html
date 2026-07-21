@@ -45,20 +45,60 @@
         </div>
     </div>
 
+    <!-- Боковая панель -->
+    <div id="drawer-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+    <nav id="drawer" class="drawer">
+        <div class="drawer-header">
+            <div class="drawer-avatar">🎣</div>
+            <div class="drawer-user" id="drawer-user">Загрузка...</div>
+        </div>
+        <div class="drawer-items">
+            <button class="drawer-item" data-tab="dashboard" onclick="drawerNav('dashboard')">
+                <span class="drawer-icon">🏠</span><span>Дашборд</span>
+            </button>
+            <button class="drawer-item" data-tab="journal" onclick="drawerNav('journal')">
+                <span class="drawer-icon">📝</span><span>Уловы</span>
+            </button>
+            <button class="drawer-item" data-tab="gallery" onclick="drawerNav('gallery')">
+                <span class="drawer-icon">📸</span><span>Фотогалерея</span>
+            </button>
+            <button class="drawer-item" data-tab="fishguide" onclick="drawerNav('fishguide')">
+                <span class="drawer-icon">🐟</span><span>Справочник рыб</span>
+            </button>
+            <button class="drawer-item" data-tab="spawning" onclick="drawerNav('spawning')">
+                <span class="drawer-icon">🚫</span><span>Нерестовые запреты</span>
+            </button>
+            <button class="drawer-item" data-tab="map" onclick="drawerNav('map')">
+                <span class="drawer-icon">🗺</span><span>Карта</span>
+            </button>
+            <button class="drawer-item" data-tab="calendar" onclick="drawerNav('calendar')">
+                <span class="drawer-icon">📅</span><span>Календарь</span>
+            </button>
+            <button class="drawer-item" data-tab="stats" onclick="drawerNav('stats')">
+                <span class="drawer-icon">📊</span><span>Статистика</span>
+            </button>
+            <div class="drawer-divider"></div>
+            <button class="drawer-item" data-tab="settings" onclick="drawerNav('settings')">
+                <span class="drawer-icon">⚙️</span><span>Настройки</span>
+            </button>
+            <button class="drawer-item" id="drawer-logout" onclick="drawerLogout()">
+                <span class="drawer-icon">🚪</span><span>Выйти</span>
+            </button>
+        </div>
+    </nav>
+
     <!-- Основное приложение -->
     <header class="header">
-        <h1>🎣 Рыболовный журнал</h1>
-        <nav class="nav">
-            <button class="nav-btn active" data-tab="dashboard">Дашборд</button>
-            <button class="nav-btn" data-tab="journal">Уловы</button>
-            <button class="nav-btn" data-tab="gallery">📸 Фото</button>
-            <button class="nav-btn" data-tab="fishguide">🐟 Рыбы</button>
-            <button class="nav-btn" data-tab="spawning">🚫 Запреты</button>
-            <button class="nav-btn" data-tab="map">Карта</button>
-            <button class="nav-btn" data-tab="calendar">Календарь</button>
-            <button class="nav-btn" data-tab="stats">Статистика</button>
-            <button class="nav-btn" data-tab="settings">⚙️</button>
-        </nav>
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleDrawer()">☰</button>
+        <div class="header-content">
+            <h1>🎣 Рыболовный журнал</h1>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="dashboard" onclick="topNav('dashboard')">Дашборд</button>
+                <button class="nav-btn" data-tab="journal" onclick="topNav('journal')">Уловы</button>
+                <button class="nav-btn" data-tab="map" onclick="topNav('map')">Карта</button>
+                <button class="nav-btn" data-tab="calendar" onclick="topNav('calendar')">Календарь</button>
+            </nav>
+        </div>
     </header>
 
     <main class="main">
@@ -574,7 +614,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '12';
+        const APP_VER = '13';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

@@ -55,9 +55,12 @@ body {
     z-index: 100;
     box-shadow: var(--shadow-lg);
     height: auto;
+    display: flex;
+    align-items: center;
+    gap: 0;
 }
 
-.header h1 { font-size: 1.15rem; margin-bottom: 8px; }
+.header h1 { font-size: 1.05rem; margin-bottom: 6px; white-space: nowrap; }
 
 .nav {
     display: flex;
@@ -1145,3 +1148,86 @@ form { padding: 16px; }
 }
 .auth-loading { margin-top: 16px; }
 .auth-screen.hidden { display: none; }
+
+/* Drawer overlay */
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+}
+.drawer-overlay.active { opacity: 1; pointer-events: auto; }
+
+/* Drawer */
+.drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--card);
+    z-index: 201;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 4px 0 20px rgba(0,0,0,.15);
+}
+.drawer.active { transform: translateX(0); }
+.drawer-header {
+    padding: 24px 20px 16px;
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: #fff;
+}
+.drawer-avatar {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+.drawer-user {
+    font-size: .9rem;
+    opacity: .9;
+    word-break: break-all;
+}
+.drawer-items {
+    padding: 8px 0;
+}
+.drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    background: none;
+    font-size: .95rem;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s;
+}
+.drawer-item:active { background: var(--bg); }
+.drawer-icon { font-size: 1.2rem; width: 24px; text-align: center; }
+.drawer-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 16px;
+}
+
+/* Hamburger button */
+.hamburger-btn {
+    background: rgba(255,255,255,.15);
+    border: none;
+    color: #fff;
+    font-size: 1.4rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+.hamburger-btn:active { background: rgba(255,255,255,.25); }
+.header-content { flex: 1; min-width: 0; }

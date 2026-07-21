@@ -333,13 +333,6 @@ function showToast(msg, type = 'success') {
 
 // ─── События ───
 function setupEvents() {
-    // Навигация с сохранением вкладки
-    $$('.nav-btn').forEach(b => b.addEventListener('click', () => {
-        switchTab(b.dataset.tab);
-        localStorage.setItem(STORAGE_KEY + '_tab', b.dataset.tab);
-        if (b.dataset.tab === 'map') setTimeout(initMap, 200);
-    }));
-
     // Уловы
     $('#add-catch-btn').addEventListener('click', openAddModal);
     $('#close-modal').addEventListener('click', closeCatchModal);
@@ -1711,6 +1704,85 @@ window.flyToPoint = flyToPoint;
 window.openDeletePointModal = openDeletePointModal;
 window.selectSearchResult = selectSearchResult;
 window.closeLightbox = closeLightbox;
+window.toggleDrawer = toggleDrawer;
+window.closeDrawer = closeDrawer;
+window.drawerNav = drawerNav;
+window.topNav = topNav;
+window.drawerLogout = drawerLogout;
+
+// ─── Боковая панель (Drawer) ───
+let _drawerOpen = false;
+
+function toggleDrawer() {
+    _drawerOpen ? closeDrawer() : openDrawer();
+}
+
+function openDrawer() {
+    _drawerOpen = true;
+    $('#drawer').classList.add('active');
+    $('#drawer-overlay').classList.add('active');
+    // Обновить пользователя
+    if (currentUser) {
+        $('#drawer-user').textContent = currentUser.isAnonymous ? 'Анонимный вход' : currentUser.email;
+    }
+    // Подсветить активную вкладку
+    const activeTab = document.querySelector('.tab-content.active')?.id;
+    $$('.drawer-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === activeTab);
+    });
+}
+
+function closeDrawer() {
+    _drawerOpen = false;
+    $('#drawer').classList.remove('active');
+    $('#drawer-overlay').classList.remove('active');
+}
+
+function drawerNav(tab) {
+    closeDrawer();
+    switchTab(tab);
+    localStorage.setItem(STORAGE_KEY + '_tab', tab);
+    if (tab === 'map') setTimeout(initMap, 200);
+    // Обновить активную кнопку в шапке
+    $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+}
+
+function topNav(tab) {
+    switchTab(tab);
+    localStorage.setItem(STORAGE_KEY + '_tab', tab);
+    if (tab === 'map') setTimeout(initMap, 200);
+}
+
+function drawerLogout() {
+    closeDrawer();
+    if (confirm('Выйти из аккаунта? Данные останутся на этом устройстве.')) {
+        if (unsubscribeCatches) unsubscribeCatches();
+        if (unsubscribeMarkers) unsubscribeMarkers();
+        auth.signOut();
+    }
+}
+
+// Свайп для открытия/закрытия drawer
+(function() {
+    let startX = 0, startY = 0, swiping = false;
+    document.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        swiping = false;
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+        if (swiping) return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) swiping = true;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+        if (!swiping) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        if (dx > 80 && !_drawerOpen) openDrawer();
+        else if (dx < -80 && _drawerOpen) closeDrawer();
+    }, { passive: true });
+})();
 
 // ─── Сезонные советы ───
 function updateSeasonalTips() {
