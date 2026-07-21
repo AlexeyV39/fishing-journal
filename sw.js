@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fishing-v25';
+const CACHE_NAME = 'fishing-v26';
 const ASSETS = [
     './',
     './index.html',
@@ -8,27 +8,41 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-    e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
-    e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))));
+    e.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        ))
+    );
     self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
-    if (e.request.url.includes('api.open-meteo.com') || e.request.url.includes('nominatim.openstreetmap.org') || e.request.url.includes('geocoding-api.open-meteo.com')) {
+    const url = new URL(e.request.url);
+
+    // API запросы — всегда из сети
+    if (url.pathname === '/weather' || url.pathname.startsWith('/weather/')) {
+        e.respondWith(fetch(e.request));
+        return;
+    }
+
+    // Внешние API — из сети с fallback
+    if (url.hostname !== location.hostname) {
         e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
         return;
     }
+
+    // Основные файлы — network-first, fallback на кэш
     e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+        fetch(e.request).then(res => {
             if (res.status === 200 && e.request.method === 'GET') {
                 const clone = res.clone();
                 caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
             }
             return res;
-        }).catch(() => caches.match('./index.html')))
+        }).catch(() => caches.match(e.request))
     );
 });
