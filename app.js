@@ -851,11 +851,12 @@ async function loadWeather() {
         const tempMax = Math.max(...temps);
 
         // Заполнить карточку погоды
+        const windSpeed = (slot.wind_speed || '—').replace(' м/с', '');
         $('#today-icon').textContent = yandexWeatherToEmoji(slot.weather_phenomenon);
         $('#today-temp').textContent = `${slot.temperature}°C`;
         $('#today-desc').textContent = slot.weather_phenomenon || '—';
         $('#today-feels').textContent = `Ощущается как ${slot.perceived_temperature || slot.temperature}°C`;
-        $('#today-wind').textContent = `${slot.wind_speed || '—'} м/с`;
+        $('#today-wind').textContent = `${windSpeed} м/с`;
         $('#today-humidity').textContent = `${slot.humidity || '—'}%`;
         $('#today-pressure').textContent = `${slot.pressure || '—'} мм`;
         $('#today-temp-min').textContent = `${tempMin}°`;
@@ -965,7 +966,7 @@ async function openWeekForecast() {
             const daySlot = slots.find(s => s.time_of_day === 'днем') || slots[1] || slots[0] || {};
             const emoji = yandexWeatherToEmoji(daySlot.weather_phenomenon);
             const desc = daySlot.weather_phenomenon || '—';
-            const wind = daySlot.wind_speed || '—';
+            const wind = (daySlot.wind_speed || '—').replace(' м/с', '');
             const pressure = daySlot.pressure || '—';
             const magnetic = day.magnetic_field_status || '';
 
@@ -1062,58 +1063,47 @@ function degToDir(deg) {
 }
 function wmoToText(c) { if(c===0)return'Ясно';if(c<=2)return'Малооблачно';if(c===3)return'Пасмурно';if(c===45||c===48)return'Туман';if(c>=51&&c<=55)return'Морось';if(c>=61&&c<=65)return'Дождь';if(c>=71&&c<=75)return'Снег';if(c>=80&&c<=82)return'Ливень';if(c>=95)return'Гроза';return'Неизвестно'; }
 
-// ─── Восход/закат солнца (алгоритм NOAA) ───
+// ─── Восход/закат солнца (упрощённый NOAA) ───
 function calcSunRiseSet(date, lat, lng) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
 
     // День года
-    const N1 = Math.floor(275 * month / 9);
-    const N2 = Math.floor((month + 9) / 12);
-    const leapYear = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)) ? 1 : 0;
-    const N = N1 - (N2 * (1 + leapYear)) + day - 30;
-
-    // Долгота солнца и склонение
-    const lngHour = lng / 15;
-
-    // Время восхода/заката (в часах от GMT)
-    const tRise = N + ((6 - lngHour) / 24);
-    const tSet = N + ((18 - lngHour) / 24);
-
-    // Средняя аномалия
-    const MRise = (0.9856 * tRise) - 3.289;
-    const MSet = (0.9856 * tSet) - 3.289;
-
-    // Истинная аномалия
-    const VRise = MRise + (1.916 * Math.sin(MRise * Math.PI / 180)) + (0.020 * Math.sin(2 * MRise * Math.PI / 180)) + 282.634;
-    const VSet = MSet + (1.916 * Math.sin(MSet * Math.PI / 180)) + (0.020 * Math.sin(2 * MSet * Math.PI / 180)) + 282.634;
-
-    // Прямое восхождение
-    const RARise = (VRise - 90) / 15;
-    const RASet = (VSet - 90) / 15;
+    const dayOfYear = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(year, 0, 0)) / 86400000);
 
     // Склонение солнца
-    const dDec = 0.39782 * Math.sin(VSet * Math.PI / 180);
+    const decl = -23.44 * Math.cos((360 / 365) * (dayOfYear + 10) * Math.PI / 180);
 
     // Часовой угол
-    const cosHRise = (Math.cos(90.833 * Math.PI / 180) / (Math.cos(lat * Math.PI / 180) * Math.cos(dDec * Math.PI / 180))) - (Math.tan(lat * Math.PI / 180) * Math.tan(dDec * Math.PI / 180));
-    const cosHSet = cosHRise;
+    const latRad = lat * Math.PI / 180;
+    const declRad = decl * Math.PI / 180;
+    const cosHA = (Math.cos(90.833 * Math.PI / 180) / (Math.cos(latRad) * Math.cos(declRad))) - Math.tan(latRad) * Math.tan(declRad);
 
-    if (cosHRise > 1 || cosHRise < -1) return { rise: '—', set: '—' };
+    if (cosHA > 1) return { rise: '—', set: '—' }; // Полярная ночь
+    if (cosHA < -1) return { rise: '—', set: '—' }; // Полярный день
 
-    const HRise = (360 - Math.acos(cosHRise) * 180 / Math.PI) / 15;
-    const HSet = Math.acos(cosHSet) * 180 / Math.PI / 15;
+    const HA = Math.acos(cosHA) * 180 / Math.PI;
+
+    // Среднее солнечное время заката/восхода (в часах)
+    const Tset = 12 + HA / 15;
+    const Trise = 12 - HA / 15;
+
+    // Уравнение времени (коррекция на эллиптическую орбиту)
+    const B = (360 / 365) * (dayOfYear - 81) * Math.PI / 180;
+    const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+
+    // Корректировка на долготу (часовой пояс UTC+3 для Москвы)
+    const timezoneOffset = 3;
+    const localOffset = -lng / 15 + timezoneOffset;
 
     // Местное время
-    const localRise = HRise - RARise + lngHour + 0.06571 * tRise - 6.622;
-    const localSet = HSet - RASet + lngHour + 0.06571 * tSet - 6.622;
+    let riseH = Trise - EoT / 60 + localOffset;
+    let setH = Tset - EoT / 60 + localOffset;
 
-    // Корректировка
-    let riseH = localRise % 24;
-    let setH = localSet % 24;
-    if (riseH < 0) riseH += 24;
-    if (setH < 0) setH += 24;
+    // Нормализация
+    riseH = ((riseH % 24) + 24) % 24;
+    setH = ((setH % 24) + 24) % 24;
 
     const fmtH = (h) => {
         const hh = Math.floor(h);
