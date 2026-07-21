@@ -398,6 +398,41 @@ function setupEvents() {
         }
     });
 
+    // Смена почты
+    $('#change-email-btn').addEventListener('click', async () => {
+        const newEmail = prompt('Введите новый email:');
+        if (!newEmail) return;
+        const password = prompt('Введите текущий пароль для подтверждения:');
+        if (!password) return;
+        try {
+            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, password);
+            await currentUser.reauthenticateWithCredential(credential);
+            await currentUser.updateEmail(newEmail);
+            showToast('Почта обновлена! Войдите заново.');
+            $('#auth-status').textContent = '✅ ' + newEmail;
+        } catch (e) {
+            const msgs = { 'auth/email-already-in-use': 'Этот email уже занят', 'auth/wrong-password': 'Неверный пароль', 'auth/invalid-email': 'Некорректный email', 'auth/requires-recent-login': 'Выйдите и войдите заново, затем повторите' };
+            showToast(msgs[e.code] || e.message, 'error');
+        }
+    });
+
+    // Смена пароля
+    $('#change-pass-btn').addEventListener('click', async () => {
+        const newPass = prompt('Введите новый пароль (минимум 6 символов):');
+        if (!newPass || newPass.length < 6) { showToast('Пароль минимум 6 символов', 'error'); return; }
+        const password = prompt('Введите текущий пароль для подтверждения:');
+        if (!password) return;
+        try {
+            const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, password);
+            await currentUser.reauthenticateWithCredential(credential);
+            await currentUser.updatePassword(newPass);
+            showToast('Пароль обновлён!');
+        } catch (e) {
+            const msgs = { 'auth/wrong-password': 'Неверный текущий пароль', 'auth/weak-password': 'Пароль слишком простой', 'auth/requires-recent-login': 'Выйдите и войдите заново, затем повторите' };
+            showToast(msgs[e.code] || e.message, 'error');
+        }
+    });
+
     // Карта
     $('#add-marker-btn').addEventListener('click', togglePlacingMarker);
     $('#map-geo-btn').addEventListener('click', mapLocateMe);

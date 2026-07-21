@@ -346,6 +346,8 @@
                 <div class="setting-item">
                     <label>Аккаунт</label>
                     <p class="setting-desc" id="auth-status">Загрузка...</p>
+                    <button class="btn btn-secondary" id="change-email-btn">📧 Сменить почту</button>
+                    <button class="btn btn-secondary" id="change-pass-btn">🔑 Сменить пароль</button>
                     <button class="btn btn-danger" id="logout-btn">🚪 Выйти</button>
                 </div>
             </div>
@@ -572,7 +574,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '11';
+        const APP_VER = '12';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
