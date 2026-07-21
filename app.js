@@ -922,7 +922,8 @@ async function openWeekForecast() {
         const today = new Date();
 
         list.innerHTML = days.map((day, i) => {
-            const date = new Date(day.date);
+            const dateParts = day.date.split('T')[0].split('-');
+            const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
             const isToday = i === 0;
             const dayName = isToday ? 'Сегодня' : DAYS_RU_SHORT[date.getDay()];
             const dateLabel = date.getDate() + ' ' + MONTHS_SHORT_RU[date.getMonth()];
