@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>">
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=36">
+    <link rel="stylesheet" href="styles.css?v=37">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -619,7 +619,8 @@
             <div id="week-forecast-list" class="week-forecast-list">
                 <div style="text-align:center;padding:40px;"><div class="spinner"></div><p>Загрузка...</p></div>
             </div>
-            <div class="hourly-section">
+            <!-- Почасовой прогноз -->
+            <div class="hourly-section" style="display:none;">
                 <h3>⏱ Почасовой прогноз на сегодня</h3>
                 <div id="hourly-forecast" class="hourly-forecast"></div>
             </div>
@@ -636,7 +637,7 @@
 
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
-    <script src="app.js?v=36"></script>
+    <script src="app.js?v=37"></script>
     <script>
         // Динамическая высота шапки для safe area
         function updateHeaderHeight() {
@@ -652,7 +653,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '36';
+        const APP_VER = '37';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

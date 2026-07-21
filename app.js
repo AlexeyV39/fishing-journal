@@ -964,6 +964,13 @@ async function openWeekForecast() {
                 </div>
             </div>`;
         }).join('');
+
+        // Показать и загрузить почасовой прогноз
+        const hourlySection = document.querySelector('.hourly-section');
+        if (hourlySection) {
+            hourlySection.style.display = 'block';
+            loadHourlyForecast();
+        }
     } catch (e) {
         list.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">Ошибка: ${e.message}</p>`;
     }
@@ -971,6 +978,8 @@ async function openWeekForecast() {
 
 function closeWeekForecast() {
     $('#week-forecast-modal').classList.remove('active');
+    const hourlySection = document.querySelector('.hourly-section');
+    if (hourlySection) hourlySection.style.display = 'none';
 }
 
 // ─── Геолокация ───
