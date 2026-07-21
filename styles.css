@@ -551,6 +551,74 @@ form { padding: 16px; }
 .wd-icon { font-size: 1rem; margin-bottom: 2px; }
 .wd-label { font-size: .7rem; color: var(--text2); }
 .wd-temp-range { white-space: nowrap; font-weight: 600; }
+
+/* Weather clickable → 7-day forecast */
+.weather-day-clickable {
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background .15s;
+    position: relative;
+}
+.weather-day-clickable:active { background: var(--bg); }
+.weather-clickable-hint {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .78rem;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.weather-clickable-arrow {
+    font-size: 1.4rem;
+    font-weight: 300;
+    line-height: 1;
+}
+
+/* Week forecast modal */
+.week-forecast-location {
+    text-align: center;
+    padding: 0 16px 10px;
+    color: var(--text2);
+    font-size: .85rem;
+}
+.week-forecast-list {
+    padding: 0 16px 16px;
+}
+.week-day-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.week-day-card:last-child { border-bottom: none; }
+.week-day-card.today { background: var(--primary-light); border-radius: var(--radius-sm); }
+.week-day-name {
+    width: 70px;
+    font-weight: 600;
+    font-size: .9rem;
+    flex-shrink: 0;
+}
+.week-day-name small { display: block; font-weight: 400; font-size: .75rem; color: var(--text2); }
+.week-day-icon { font-size: 1.8rem; flex-shrink: 0; }
+.week-day-temps {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.week-day-temp-range { font-size: 1rem; font-weight: 700; }
+.week-day-temp-range .temp-max { color: var(--text); }
+.week-day-temp-range .temp-min { color: var(--text2); font-weight: 400; }
+.week-day-desc { font-size: .8rem; color: var(--text2); }
+.week-day-extras {
+    display: flex;
+    gap: 10px;
+    font-size: .78rem;
+    color: var(--text2);
+    flex-shrink: 0;
+}
 .form-actions {
     display: flex;
     justify-content: flex-end;

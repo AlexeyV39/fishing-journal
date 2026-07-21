@@ -38,9 +38,9 @@
                         <p>Загрузка погоды...</p>
                     </div>
                     <div class="weather-content" id="weather-content" style="display:none">
-                        <!-- Сегодня -->
-                        <div class="weather-day">
-                            <h3>Погода на Сегодня</h3>
+                        <!-- Сегодня (кликабельная → 7 дней) -->
+                        <div class="weather-day weather-day-clickable" onclick="openWeekForecast()">
+                            <div class="weather-clickable-hint"><span>Прогноз на неделю</span><span class="weather-clickable-arrow">›</span></div>
                             <div class="weather-row">
                                 <span class="weather-row-icon" id="today-icon">☀️</span>
                                 <div class="weather-row-info">
@@ -56,24 +56,6 @@
                                 <div class="wd-item"><span class="wd-icon">📊</span><span id="today-pressure">-- мм</span><span class="wd-label">Давление</span></div>
                                 <div class="wd-item"><span class="wd-icon">🌡</span><span class="wd-temp-range"><span id="today-temp-min">--°</span>/<span id="today-temp-max">--°</span></span><span class="wd-label">Мин/Макс</span></div>
                                 <div class="wd-item"><span class="wd-icon">🐟</span><span id="today-water-temp">--°C</span><span class="wd-label">Темп. воды</span></div>
-                            </div>
-                        </div>
-                        <!-- Завтра -->
-                        <div class="weather-day">
-                            <h3>Погода на Завтра</h3>
-                            <div class="weather-row">
-                                <span class="weather-row-icon" id="tomm-icon">☀️</span>
-                                <div class="weather-row-info">
-                                    <span class="weather-row-temp" id="tomm-temp">--°C</span>
-                                    <span class="weather-row-desc" id="tomm-desc">--</span>
-                                    <span class="weather-row-feels" id="tomm-feels">Ощущается как --°C</span>
-                                </div>
-                            </div>
-                            <div class="weather-details-grid">
-                                <div class="wd-item"><span class="wd-icon">💨</span><span id="tomm-wind">-- м/с</span><span class="wd-label">Ветер</span></div>
-                                <div class="wd-item"><span class="wd-icon">💧</span><span id="tomm-humidity">--%</span><span class="wd-label">Влажность</span></div>
-                                <div class="wd-item"><span class="wd-icon">📊</span><span id="tomm-pressure">-- мм</span><span class="wd-label">Давление</span></div>
-                                <div class="wd-item"><span class="wd-icon">🌡</span><span class="wd-temp-range"><span id="tomm-temp-min">--°</span>/<span id="tomm-temp-max">--°</span></span><span class="wd-label">Мин/Макс</span></div>
                             </div>
                         </div>
                         <p class="weather-location" id="weather-location" style="text-align:center;padding:8px;color:#64748b;">--</p>
@@ -468,6 +450,20 @@
             <iframe id="route-iframe" style="width:100%;flex:1;border:none;min-height:70vh;" allow="geolocation"></iframe>
             <div style="padding:10px;text-align:center;">
                 <a id="route-open-navi" href="#" target="_blank" style="display:inline-block;padding:10px 24px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">🚗 Открыть в Навигаторе</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: погода на 7 дней -->
+    <div id="week-forecast-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Погода на 7 дней</h2>
+                <button class="close-btn" onclick="closeWeekForecast()">&times;</button>
+            </div>
+            <div class="week-forecast-location" id="week-forecast-location"></div>
+            <div id="week-forecast-list" class="week-forecast-list">
+                <div style="text-align:center;padding:40px;"><div class="spinner"></div><p>Загрузка...</p></div>
             </div>
         </div>
     </div>

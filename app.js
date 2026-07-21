@@ -248,6 +248,7 @@ function setupEvents() {
     $('#catch-modal').addEventListener('click', (e) => { if (e.target === $('#catch-modal')) closeCatchModal(); });
     $('#delete-modal').addEventListener('click', (e) => { if (e.target === $('#delete-modal')) closeDeleteModal(); });
     $('#marker-modal').addEventListener('click', (e) => { if (e.target === $('#marker-modal')) $('#marker-modal').classList.remove('active'); });
+    $('#week-forecast-modal').addEventListener('click', (e) => { if (e.target === $('#week-forecast-modal')) closeWeekForecast(); });
 }
 
 function switchTab(name) {
@@ -576,18 +577,10 @@ async function loadWeather() {
 
         lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
 
-        // Завтра
-        if (daily.time.length > 1) {
-            $('#tomm-icon').textContent = wmoToEmoji(daily.weather_code[1]);
-            $('#tomm-temp').textContent = `${Math.round((daily.temperature_2m_max[1] + daily.temperature_2m_min[1]) / 2)}°C`;
-            $('#tomm-desc').textContent = wmoToText(daily.weather_code[1]);
-            $('#tomm-feels').textContent = `Мин: ${Math.round(daily.temperature_2m_min[1])}° / Макс: ${Math.round(daily.temperature_2m_max[1])}°`;
-            $('#tomm-wind').textContent = `${daily.wind_speed_10m_max[1]} м/с`;
-            $('#tomm-humidity').textContent = `${daily.relative_humidity_2m_mean[1]}%`;
-            $('#tomm-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-            $('#tomm-temp-min').textContent = `${Math.round(daily.temperature_2m_min[1])}°`;
-            $('#tomm-temp-max').textContent = `${Math.round(daily.temperature_2m_max[1])}°`;
-        }
+        // Сохранить координаты для 7-дневного прогноза
+        settings.lat = lat;
+        settings.lng = lon;
+        saveData();
 
         $('#weather-location').textContent = `📍 ${settings.city}`;
         $('#weather-loading').style.display = 'none';
@@ -598,6 +591,70 @@ async function loadWeather() {
         $('#weather-error').style.display = 'block';
         $('#weather-error p').textContent = `Ошибка: ${e.message}`;
     }
+}
+
+// ─── Погода на 7 дней ───
+async function openWeekForecast() {
+    const modal = $('#week-forecast-modal');
+    const list = $('#week-forecast-list');
+    const locEl = $('#week-forecast-location');
+    modal.classList.add('active');
+    list.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p>Загрузка...</p></div>';
+
+    const lat = settings.lat;
+    const lng = settings.lng;
+    if (!lat || !lng) {
+        list.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text2);">Определите местоположение</p>';
+        return;
+    }
+
+    locEl.textContent = `📍 ${settings.city}`;
+
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`);
+        if (!res.ok) throw new Error('Ошибка API');
+        const data = await res.json();
+        const d = data.daily;
+
+        const DAYS_RU_SHORT = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+        const MONTHS_SHORT_RU = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+
+        list.innerHTML = d.time.map((dateStr, i) => {
+            const date = new Date(dateStr + 'T12:00:00');
+            const isToday = dateStr === todayStr;
+            const dayName = isToday ? 'Сегодня' : DAYS_RU_SHORT[date.getDay()];
+            const dateLabel = date.getDate() + ' ' + MONTHS_SHORT_RU[date.getMonth()];
+            const max = Math.round(d.temperature_2m_max[i]);
+            const min = Math.round(d.temperature_2m_min[i]);
+            const emoji = wmoToEmoji(d.weather_code[i]);
+            const desc = wmoToText(d.weather_code[i]);
+            const precip = d.precipitation_sum[i] || 0;
+            const wind = Math.round(d.wind_speed_10m_max[i]);
+
+            return `<div class="week-day-card${isToday ? ' today' : ''}">
+                <div class="week-day-name">${dayName}<small>${dateLabel}</small></div>
+                <span class="week-day-icon">${emoji}</span>
+                <div class="week-day-temps">
+                    <div class="week-day-temp-range">
+                        <span class="temp-max">${max}°</span> / <span class="temp-min">${min}°</span>
+                    </div>
+                    <div class="week-day-desc">${desc}</div>
+                </div>
+                <div class="week-day-extras">
+                    <span>💧${precip}мм</span>
+                    <span>💨${wind}</span>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        list.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">Ошибка загрузки: ${e.message}</p>`;
+    }
+}
+
+function closeWeekForecast() {
+    $('#week-forecast-modal').classList.remove('active');
 }
 
 // ─── Геолокация ───
@@ -643,19 +700,6 @@ async function detectLocation() {
         $('#today-water-temp').textContent = `${airT > 10 ? Math.round(airT - 3) : Math.round(airT + 1)}°C`;
 
         lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
-
-        // Завтра
-        if (daily.time.length > 1) {
-            $('#tomm-icon').textContent = wmoToEmoji(daily.weather_code[1]);
-            $('#tomm-temp').textContent = `${Math.round((daily.temperature_2m_max[1] + daily.temperature_2m_min[1]) / 2)}°C`;
-            $('#tomm-desc').textContent = wmoToText(daily.weather_code[1]);
-            $('#tomm-feels').textContent = `Мин: ${Math.round(daily.temperature_2m_min[1])}° / Макс: ${Math.round(daily.temperature_2m_max[1])}°`;
-            $('#tomm-wind').textContent = `${daily.wind_speed_10m_max[1]} м/с`;
-            $('#tomm-humidity').textContent = `${daily.relative_humidity_2m_mean[1]}%`;
-            $('#tomm-pressure').textContent = `${Math.round(cur.surface_pressure * 0.75)} мм`;
-            $('#tomm-temp-min').textContent = `${Math.round(daily.temperature_2m_min[1])}°`;
-            $('#tomm-temp-max').textContent = `${Math.round(daily.temperature_2m_max[1])}°`;
-        }
 
         const displayLocation = locationName || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
         $('#weather-location').textContent = `📍 ${displayLocation}`;
