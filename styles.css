@@ -1,4 +1,4 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 
 :root {
     --primary: #2563eb;
@@ -20,6 +20,16 @@
     --shadow-lg: 0 4px 12px rgba(0,0,0,.1);
     --radius: 12px;
     --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -29,6 +39,7 @@ body {
     line-height: 1.5;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Header */
@@ -36,8 +47,11 @@ body {
     background: linear-gradient(135deg, #1e40af, #2563eb);
     color: #fff;
     padding: 12px 16px;
-    position: sticky;
+    padding-top: calc(12px + var(--safe-top));
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 100;
     box-shadow: var(--shadow-lg);
 }
@@ -67,12 +81,20 @@ body {
 .nav-btn:hover { background: rgba(255,255,255,.22); }
 .nav-btn.active { background: #fff; color: var(--primary); font-weight: 600; }
 
+input, textarea, select, .catch-notes, .fish-card-desc, .spawning-card-details { -webkit-user-select: text; user-select: text; }
+
 /* Main */
 .main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 16px;
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + var(--safe-bottom));
+    padding-top: 10px;
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
 }
 
 .tab-content { display: none; }
@@ -436,6 +458,8 @@ body {
     z-index: 1000;
     align-items: flex-end;
     justify-content: center;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
 }
 .modal.active { display: flex; }
 
@@ -444,8 +468,9 @@ body {
     border-radius: var(--radius) var(--radius) 0 0;
     width: 100%;
     max-width: 500px;
-    max-height: 90vh;
+    max-height: calc(90vh - var(--safe-top) - var(--safe-bottom));
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     animation: slideUp .25s ease;
 }
 @keyframes slideUp {

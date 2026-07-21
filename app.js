@@ -268,13 +268,32 @@ function setupEvents() {
     $('#week-forecast-modal').addEventListener('click', (e) => { if (e.target === $('#week-forecast-modal')) closeWeekForecast(); });
 }
 
+// ─── Переключение вкладок (с сохранением позиции скролла) ───
+const _scrollPositions = {};
+
 function switchTab(name) {
+    // Сохранить скролл текущей вкладки
+    const currentActive = document.querySelector('.tab-content.active');
+    if (currentActive) {
+        const main = $('.main');
+        _scrollPositions[currentActive.id] = main ? main.scrollTop : 0;
+    }
+
     $$('.nav-btn').forEach(b => b.classList.remove('active'));
     $$('.tab-content').forEach(c => c.classList.remove('active'));
     const btn = $(`[data-tab="${name}"]`);
     const tab = $(`#${name}`);
     if (btn) btn.classList.add('active');
-    if (tab) tab.classList.add('active');
+    if (tab) {
+        tab.classList.add('active');
+        // Восстановить скролл новой вкладки
+        const main = $('.main');
+        if (main) {
+            requestAnimationFrame(() => {
+                main.scrollTop = _scrollPositions[name] || 0;
+            });
+        }
+    }
 }
 
 function setDefaultDate() { $('#catch-date').value = new Date().toISOString().split('T')[0]; }
