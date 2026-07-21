@@ -931,6 +931,18 @@ async function loadWeather() {
 
     lastWeatherData = { temp, pressure, wind: parseFloat(windSpeed) || 0, humidity };
 
+    // Температура воды (приблизительная)
+    const waterT = temp > 10 ? Math.round(temp - 3) : Math.round(temp + 1);
+    $('#today-water-temp').textContent = `${waterT}°C`;
+
+    // Магнитное поле (из Яндекса)
+    const magEl = $('#today-magnetic');
+    if (magEl && yandexData && yandexData.days && yandexData.days[0]) {
+        const mag = yandexData.days[0].magnetic_field_status;
+        if (mag) { magEl.textContent = mag; magEl.parentElement.style.display = ''; }
+        else { magEl.parentElement.style.display = 'none'; }
+    }
+
     // Восход/закат
     const sunTimes = calcSunRiseSet(new Date(), settings.lat || 55.7558, settings.lng || 37.6173);
     if ($('#sunrise-time')) $('#sunrise-time').textContent = sunTimes.rise;
@@ -968,12 +980,17 @@ async function openWeekForecast() {
 
     const omLat = settings.lat || 55.7558;
     const omLon = settings.lng || 37.6173;
-    const p2 = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean,surface_pressure&timezone=auto&forecast_days=7`)
+    const p2 = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`)
         .then(r => r.ok ? r.json() : null)
         .then(d => { if (d && d.daily) omDaily = d.daily; })
         .catch(() => {});
 
     await Promise.allSettled([p1, p2]);
+
+    // Текущее давление для всех дней (Open-Meteo не даёт daily pressure)
+    const currentPressure = openMeteoData && openMeteoData.current
+        ? Math.round(openMeteoData.current.surface_pressure * 0.75)
+        : null;
 
     if (!yandexDays && !omDaily) {
         list.innerHTML = '<p style="text-align:center;padding:20px;color:var(--danger);">Данные недоступны</p>';
@@ -990,7 +1007,7 @@ async function openWeekForecast() {
         if (omDaily && i < omDaily.time.length) {
             tempMin = Math.round(omDaily.temperature_2m_min[i]);
             tempMax = Math.round(omDaily.temperature_2m_max[i]);
-            pressure = omDaily.surface_pressure ? Math.round(omDaily.surface_pressure[i] * 0.75) : '—';
+            pressure = currentPressure;
             windMax = omDaily.wind_speed_10m_max ? Math.round(omDaily.wind_speed_10m_max[i]) : '—';
             emojiOM = wmoToEmoji(omDaily.weather_code[i]);
             descOM = wmoToText(omDaily.weather_code[i]);
@@ -1011,11 +1028,11 @@ async function openWeekForecast() {
             if (windMax === undefined) windMax = parseInt(windYandex) || '—';
         }
 
-        // Финальный мёрж
+        // Финальный мёрж — приоритет Open-Meteo для числовых данных
         const emoji = emojiYandex || emojiOM || '🌤';
         const desc = descYandex || descOM || '—';
-        const wind = windMax || windYandex;
-        const p = pressure || '—';
+        const wind = windMax !== undefined ? windMax : (parseInt(windYandex) || '—');
+        const p = (pressure !== undefined && pressure !== null) ? pressure : (pressureYandex || '—');
 
         // Дата
         let dateStr, dayName;
