@@ -1430,7 +1430,7 @@ function createMap() {
         ymap = new ymaps.Map('map-container', {
             center: [55.7558, 37.6173],
             zoom: 10,
-            controls: ['zoomControl', 'geolocationControl']
+            controls: ['zoomControl']
         });
 
         // Слои карты
@@ -1498,7 +1498,7 @@ function switchMapLayer(layerName) {
         center: center,
         zoom: zoom,
         type: typeMap[layerName],
-        controls: ['zoomControl', 'geolocationControl']
+        controls: ['zoomControl']
     });
 
     // Восстановить маркеры
