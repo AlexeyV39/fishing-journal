@@ -767,6 +767,36 @@ function updateSizeChart() {
 // ─── Погода (Open-Meteo) ───
 const WEATHER_API = '';
 
+const CITY_MAP = {
+    'москва': 'Moscow', 'санкт-петербург': 'Saint Petersburg', 'петербург': 'Saint Petersburg',
+    'новосибирск': 'Novosibirsk', 'екатеринбург': 'Yekaterinburg', 'казань': 'Kazan',
+    'нижний новгород': 'Nizhny Novgorod', 'челябинск': 'Chelyabinsk', 'самара': 'Samara',
+    'омск': 'Omsk', 'ростов-на-дону': 'Rostov-on-Don', 'уфа': 'Ufa',
+    'красноярск': 'Krasnoyarsk', 'воронеж': 'Voronezh', 'пермь': 'Perm',
+    'волгоград': 'Volgograd', 'краснодар': 'Krasnodar', 'саратов': 'Saratov',
+    'тюмень': 'Tyumen', 'томск': 'Tomsk', 'иркутск': 'Irkutsk',
+    'барнаул': 'Barnaul', 'ульяновск': 'Ulyanovsk', 'хабаровск': 'Khabarovsk',
+    'владивосток': 'Vladivostok', 'махачкала': 'Makhachkala', 'оренбург': 'Orenburg',
+    'кемерово': 'Kemerovo', 'рязань': 'Ryazan', 'калининград': 'Kaliningrad',
+    'томск': 'Tomsk', 'кострома': 'Kostroma', 'вологда': 'Vologda',
+    'мурманск': 'Murmansk', 'архангельск': 'Arkhangelsk', 'псков': 'Pskov',
+    'сочи': 'Sochi', 'ярославль': 'Yaroslavl', 'смоленск': 'Smolensk',
+    'брянск': 'Bryansk', 'орёл': 'Oryol', 'курск': 'Kursk',
+    'белгород': 'Belgorod', 'тамбов': 'Tambov', 'липецк': 'Lipetsk',
+    'саранск': 'Saransk', 'пенза': 'Penza', 'йошкар-ола': 'Yoshkar-Ola',
+    'чебоксары': 'Cheboksyry', 'саранск': 'Saransk', 'владикавказ': 'Vladikavkaz',
+    'набережные челны': 'Naberezhnye Chelny', 'златоуст': 'Zlatoust',
+    'круглый год': '', '': ''
+};
+
+function transliterateCity(city) {
+    if (!city) return 'Moscow';
+    const lower = city.toLowerCase().trim();
+    if (CITY_MAP[lower]) return CITY_MAP[lower];
+    // Если не нашли в словаре — пробуем как есть (может быть на английском)
+    return city;
+}
+
 function yandexWeatherToEmoji(phenomenon) {
     const map = {
         'ясно': '☀️', 'малооблачно': '🌤', 'переменная облачность': '⛅',
@@ -796,7 +826,7 @@ async function loadWeather() {
     $('#weather-content').style.display = 'none';
     $('#weather-error').style.display = 'none';
     try {
-        const city = settings.city || 'Москва';
+        const city = transliterateCity(settings.city);
         const res = await fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(city)}`);
         if (!res.ok) throw new Error('Ошибка API');
         const data = await res.json();
@@ -910,7 +940,7 @@ async function openWeekForecast() {
     locEl.textContent = `📍 ${settings.city || 'Москва'}`;
 
     try {
-        const city = settings.city || 'Москва';
+        const city = transliterateCity(settings.city);
         const res = await fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(city)}`);
         if (!res.ok) throw new Error('Ошибка API');
         const data = await res.json();
