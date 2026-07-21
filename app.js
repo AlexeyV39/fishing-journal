@@ -829,24 +829,30 @@ async function loadWeather() {
     const cityRu = settings.city || 'Москва';
     const cityEn = transliterateCity(cityRu);
 
-    // Параллельно запрашиваем оба источника
+    // Параллельно с таймаутом 8 сек
     let yandexData = null;
     let openMeteoData = null;
 
-    const p1 = fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(cityEn)}`)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d && d.status === 'ok') yandexData = d.forecast; })
-        .catch(() => {});
+    const withTimeout = (p, ms) => Promise.race([p, new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+    const p1 = withTimeout(
+        fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(cityEn)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d && d.status === 'ok') yandexData = d.forecast; }),
+        8000
+    ).catch(() => {});
 
     let omLat = settings.lat || 55.7558, omLon = settings.lng || 37.6173;
     // Определяем координаты через Open-Meteo geocoding если нет сохранённых
-    const p2 = fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityRu)}&count=1&language=ru&format=json`)
-        .then(r => r.json())
-        .then(d => { if (d.results && d.results.length) { omLat = d.results[0].latitude; omLon = d.results[0].longitude; settings.lat = omLat; settings.lng = omLon; } })
-        .then(() => fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`))
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) openMeteoData = d; })
-        .catch(() => {});
+    const p2 = withTimeout(
+        fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityRu)}&count=1&language=ru&format=json`)
+            .then(r => r.json())
+            .then(d => { if (d.results && d.results.length) { omLat = d.results[0].latitude; omLon = d.results[0].longitude; settings.lat = omLat; settings.lng = omLon; } })
+            .then(() => fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`))
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) openMeteoData = d; }),
+        10000
+    ).catch(() => {});
 
     await Promise.allSettled([p1, p2]);
 
@@ -972,24 +978,29 @@ async function openWeekForecast() {
     let yandexDays = null;
     let omDaily = null;
 
-    // Параллельно
-    const p1 = fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(cityEn)}`)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d && d.status === 'ok' && d.forecast) yandexDays = d.forecast.days; })
-        .catch(() => {});
+    // Параллельно с таймаутами
+    const p1 = withTimeout(
+        fetch(`${WEATHER_API}/weather?city=${encodeURIComponent(cityEn)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d && d.status === 'ok' && d.forecast) yandexDays = d.forecast.days; }),
+        8000
+    ).catch(() => {});
 
     const omLat = settings.lat || 55.7558;
     const omLon = settings.lng || 37.6173;
-    const p2 = fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`)
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d && d.daily) omDaily = d.daily; })
-        .catch(() => {});
+    let weekOpenMeteo = null;
+    const p2 = withTimeout(
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${omLat}&longitude=${omLon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) { omDaily = d.daily; weekOpenMeteo = d; } }),
+        10000
+    ).catch(() => {});
 
     await Promise.allSettled([p1, p2]);
 
-    // Текущее давление для всех дней (Open-Meteo не даёт daily pressure)
-    const currentPressure = openMeteoData && openMeteoData.current
-        ? Math.round(openMeteoData.current.surface_pressure * 0.75)
+    // Текущее давление для всех дней
+    const currentPressure = weekOpenMeteo && weekOpenMeteo.current
+        ? Math.round(weekOpenMeteo.current.surface_pressure * 0.75)
         : null;
 
     if (!yandexDays && !omDaily) {
