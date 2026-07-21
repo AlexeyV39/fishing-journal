@@ -133,6 +133,8 @@
                                 <div class="wd-item"><span class="wd-icon">📊</span><span id="today-pressure">-- мм</span><span class="wd-label">Давление</span></div>
                                 <div class="wd-item"><span class="wd-icon">🌡</span><span class="wd-temp-range"><span id="today-temp-min">--°</span>/<span id="today-temp-max">--°</span></span><span class="wd-label">Мин/Макс</span></div>
                                 <div class="wd-item"><span class="wd-icon">🐟</span><span id="today-water-temp">--°C</span><span class="wd-label">Темп. воды</span></div>
+                                <div class="wd-item"><span class="wd-icon">🌅</span><span id="sunrise-time">--:--</span><span class="wd-label">Восход</span></div>
+                                <div class="wd-item"><span class="wd-icon">🌇</span><span id="sunset-time">--:--</span><span class="wd-label">Закат</span></div>
                             </div>
                         </div>
                         <p class="weather-location" id="weather-location" style="text-align:center;padding:8px;color:#64748b;">--</p>
@@ -643,7 +645,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '16';
+        const APP_VER = '17';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

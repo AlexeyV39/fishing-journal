@@ -233,6 +233,10 @@ function initApp() {
     calcMoonPhase();
     updateForecast();
     renderCalendar();
+    renderMonthTabs();
+    // Автоматически выбрать сегодня в календаре
+    const today = new Date();
+    selectCalendarDay(today.getFullYear(), today.getMonth(), today.getDate());
     requestNotificationPermission();
     checkFishingAlerts();
     // Показать статус аккаунта
@@ -771,12 +775,16 @@ async function loadWeather() {
         if (!geoData.results || !geoData.results.length) throw new Error(`Город "${settings.city}" не найден`);
         const { latitude: lat, longitude: lon } = geoData.results[0];
 
-        // Текущая погода + прогноз на 2 дня
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
+        // Текущая погода: ECMWF (европейская модель, самая точная для наших широт)
+        const wRes = await fetch(`https://api.open-meteo.com/v1/ecmwf?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&timezone=auto`);
         if (!wRes.ok) throw new Error('Ошибка API');
         const data = await wRes.json();
         const cur = data.current;
-        const daily = data.daily;
+
+        // Прогноз на 2 дня от GFS (ECMWF не даёт daily)
+        const dRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
+        const dData = await dRes.json();
+        const daily = dData.daily;
 
         // Сегодня
         $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
@@ -793,6 +801,13 @@ async function loadWeather() {
         $('#today-water-temp').textContent = `${airT > 10 ? Math.round(airT - 3) : Math.round(airT + 1)}°C`;
 
         lastWeatherData = { temp: Math.round(cur.temperature_2m), pressure: Math.round(cur.surface_pressure * 0.75), wind: cur.wind_speed_10m, humidity: cur.relative_humidity_2m };
+
+        // Восход/закат солнца
+        const sunTimes = calcSunRiseSet(new Date(), lat, lon);
+        const sunRiseEl = $('#sunrise-time');
+        const sunSetEl = $('#sunset-time');
+        if (sunRiseEl) sunRiseEl.textContent = sunTimes.rise;
+        if (sunSetEl) sunSetEl.textContent = sunTimes.set;
 
         // Сохранить координаты для 7-дневного прогноза
         settings.lat = lat;
@@ -969,6 +984,61 @@ function degToDir(deg) {
     return dirs[Math.round(deg / 22.5) % 16];
 }
 function wmoToText(c) { if(c===0)return'Ясно';if(c<=2)return'Малооблачно';if(c===3)return'Пасмурно';if(c===45||c===48)return'Туман';if(c>=51&&c<=55)return'Морось';if(c>=61&&c<=65)return'Дождь';if(c>=71&&c<=75)return'Снег';if(c>=80&&c<=82)return'Ливень';if(c>=95)return'Гроза';return'Неизвестно'; }
+
+// ─── Восход/закат солнца (алгоритм NOAA) ───
+function calcSunRiseSet(date, lat, lng) {
+    const year = date.getFullYear(), month = date.getMonth() + 1, day = date.getDate();
+    const N1 = Math.floor(275 * month / 9);
+    const N2 = Math.floor((month + 9) / 12);
+    const N = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 366 : 365);
+    const JD = 2451545 + (N1 - N2) + day - 0.5 + year - 2000;
+
+    // Долгота солнца
+    const T = JD / 36525;
+    const L = (280.460 + 36000.77 * T) % 360;
+    const g = (357.528 + 35999.05 * T) % 360;
+    const lambda = L + 1.915 * Math.sin(g * Math.PI / 180) + 0.020 * Math.sin(2 * g * Math.PI / 180);
+    const epsilon = 23.439 - 0.0000004 * T;
+    const delta = Math.asin(Math.sin(epsilon * Math.PI / 180) * Math.sin(lambda * Math.PI / 180)) * 180 / Math.PI;
+
+    // Часовой угол
+    const phi = lat;
+    const zenith = 90.833;
+    const cosH = (Math.cos(zenith * Math.PI / 180) / (Math.cos(phi * Math.PI / 180) * Math.cos(delta * Math.PI / 180))) - Math.tan(phi * Math.PI / 180) * Math.tan(delta * Math.PI / 180);
+
+    if (cosH > 1) return { rise: '—', set: '—',昼: 'Нет' };
+    if (cosH < -1) return { rise: '—', set: '—',昼: '24ч' };
+
+    const H = Math.acos(cosH) * 180 / Math.PI;
+
+    // Среднее солнечное время восхода/заката
+    const T_rise = (360 - H) / 15;
+    const T_set = H / 15;
+
+    // Уравнение времени
+    const B = (360 / 365) * (N - 81) * Math.PI / 180;
+    const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+
+    // Корректировка на долготу
+    const LST = -lng / 15;
+    const offset = -(LST * 60 + EoT) / 60;
+
+    let riseH = T_rise + offset;
+    let setH = 24 - T_set + offset;
+
+    if (riseH < 0) riseH += 24;
+    if (riseH >= 24) riseH -= 24;
+    if (setH < 0) setH += 24;
+    if (setH >= 24) setH -= 24;
+
+    const fmtH = (h) => {
+        const hh = Math.floor(h);
+        const mm = Math.round((h - hh) * 60);
+        return `${String(hh).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`;
+    };
+
+    return { rise: fmtH(riseH), set: fmtH(setH) };
+}
 
 function updateForecastFromWeather(cur) {
     let f = 1.0;
