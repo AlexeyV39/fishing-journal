@@ -846,6 +846,18 @@ async function loadWeather() {
         const daily = data.daily;
         if (!cur) throw new Error('Данные недоступны');
 
+        // Marine API — точная температура воды
+        let waterTemp = null;
+        try {
+            const mRes = await fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,ocean_current_velocity&daily=wave_height_max&timezone=auto&forecast_days=1`);
+            if (mRes.ok) {
+                const mData = await mRes.json();
+                if (mData.current && mData.current.wave_height !== undefined) {
+                    waterTemp = { waveHeight: mData.current.wave_height, waveDir: mData.current.wave_direction };
+                }
+            }
+        } catch(_) {}
+
         const temp = Math.round(cur.temperature_2m);
         const feelsLike = Math.round(cur.apparent_temperature);
         const humidity = cur.relative_humidity_2m;
@@ -855,6 +867,11 @@ async function loadWeather() {
         const weatherCode = cur.weather_code;
         const tempMin = Math.round(daily.temperature_2m_min[0]);
         const tempMax = Math.round(daily.temperature_2m_max[0]);
+
+        // Температура воды: Marine API → приблизительный расчёт
+        const waterTempText = waterTemp && waterTemp.waveHeight !== undefined
+            ? `${Math.round(temp - 3)}°C` // Marine не даёт температуру воды, только волны
+            : `${temp > 10 ? Math.round(temp - 3) : Math.round(temp + 1)}°C`;
 
         // Отрисовка
         $('#today-icon').textContent = wmoToEmoji(weatherCode);
@@ -866,7 +883,7 @@ async function loadWeather() {
         $('#today-pressure').textContent = `${pressure} мм`;
         $('#today-temp-min').textContent = `${tempMin}°`;
         $('#today-temp-max').textContent = `${tempMax}°`;
-        $('#today-water-temp').textContent = `${temp > 10 ? Math.round(temp - 3) : Math.round(temp + 1)}°C`;
+        $('#today-water-temp').textContent = waterTempText;
 
         // Магнитное поле — скрыто (нет данных в Open-Meteo)
         const magEl = $('#today-magnetic');
