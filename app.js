@@ -908,7 +908,7 @@ async function openWeekForecast() {
         const lat = settings.lat || 55.7558;
         const lon = settings.lng || 37.6173;
 
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_direction_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`);
         if (!res.ok) throw new Error('Ошибка API');
         const data = await res.json();
         const d = data.daily;
@@ -930,7 +930,6 @@ async function openWeekForecast() {
             const emoji = wmoToEmoji(d.weather_code[i]);
             const desc = wmoToText(d.weather_code[i]);
             const wind = d.wind_speed_10m_max ? Math.round(d.wind_speed_10m_max[i]) : '—';
-            const windDir = d.wind_direction_10m_max ? degToDir(d.wind_direction_10m_max[i]) : '';
             const precip = d.precipitation_sum[i] || 0;
 
             return `<div class="week-day-card${isToday ? ' today' : ''}">
@@ -943,7 +942,7 @@ async function openWeekForecast() {
                     <div class="week-day-desc">${desc}</div>
                 </div>
                 <div class="week-day-extras">
-                    <span>💨${wind} ${windDir}</span>
+                    <span>💨${wind} м/с</span>
                     ${precip > 0 ? `<span>💧${precip.toFixed(1)}мм</span>` : ''}
                 </div>
             </div>`;
@@ -1038,11 +1037,6 @@ function wmoToText(c) {
         95: 'Гроза', 96: 'Гроза с градом', 99: 'Сильная гроза с градом'
     };
     return map[c] || 'Неизвестно';
-}
-
-function degToDir(deg) {
-    const dirs = ['С','ССВ','СВ','ВСВ','В','ВЮВ','ЮВ','ЮЮВ','Ю','ЮЮЗ','ЮЗ','ЗЮЗ','З','ЗСЗ','СЗ','ССЗ'];
-    return dirs[Math.round(deg / 22.5) % 16];
 }
 
 // ─── Восход/закат солнца (упрощённый NOAA) ───
