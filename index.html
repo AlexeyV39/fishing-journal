@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>">
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=27">
+    <link rel="stylesheet" href="styles.css?v=28">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -629,7 +629,7 @@
 
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=28"></script>
     <script>
         // Динамическая высота шапки для safe area
         function updateHeaderHeight() {
@@ -645,7 +645,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '27';
+        const APP_VER = '28';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
