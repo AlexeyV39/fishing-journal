@@ -81,9 +81,6 @@
             <button class="drawer-item" data-tab="settings" onclick="drawerNav('settings')">
                 <span class="drawer-icon">⚙️</span><span>Настройки</span>
             </button>
-            <button class="drawer-item" data-tab="game" onclick="drawerNav('game')">
-                <span class="drawer-icon">🎮</span><span>Речная Рыбалка</span>
-            </button>
             <button class="drawer-item" id="drawer-logout" onclick="drawerLogout()">
                 <span class="drawer-icon">🚪</span><span>Выйти</span>
             </button>
@@ -100,7 +97,6 @@
                 <button class="nav-btn" data-tab="journal" onclick="topNav('journal')">Уловы</button>
                 <button class="nav-btn" data-tab="map" onclick="topNav('map')">Карта</button>
                 <button class="nav-btn" data-tab="calendar" onclick="topNav('calendar')">Календарь</button>
-                <button class="nav-btn" data-tab="game" onclick="topNav('game')">🎮 Игра</button>
             </nav>
         </div>
     </header>
@@ -392,15 +388,6 @@
             </div>
         </section>
 
-        <!-- Речная Рыбалка — Игра -->
-        <section id="game" class="tab-content">
-            <h2>🎮 Речная Рыбалка</h2>
-            <p style="color:var(--text2);margin-bottom:12px;font-size:.9rem;">Кликните по воде для поклёвки. Перемещайте мышь для управления удочкой.</p>
-            <div class="game-canvas-wrapper" style="position:relative;width:100%;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-md);background:#0D3A5E;aspect-ratio:16/9;">
-                <canvas id="game-canvas" style="width:100%;height:100%;display:block;"></canvas>
-            </div>
-        </section>
-
         <!-- Настройки -->
         <section id="settings" class="tab-content">
             <h2>Настройки</h2>
@@ -641,7 +628,6 @@
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
     <script src="app.js"></script>
-    <script src="game.js"></script>
     <script>
         // Динамическая высота шапки для safe area
         function updateHeaderHeight() {
@@ -672,32 +658,6 @@
             }
         }
 
-        // ─── Инициализация игры "Речная Рыбалка" ───
-        (function() {
-            let gameInited = false;
-            const origTopNav = window.topNav;
-            window.topNav = function(tab) {
-                origTopNav(tab);
-                if (tab === 'game' && !gameInited && window.RiverFishingGame) {
-                    gameInited = true;
-                    const canvas = document.getElementById('game-canvas');
-                    if (canvas) {
-                        window.RiverFishingGame.init(canvas);
-                    }
-                }
-            };
-            const origDrawerNav = window.drawerNav;
-            window.drawerNav = function(tab) {
-                origDrawerNav(tab);
-                if (tab === 'game' && !gameInited && window.RiverFishingGame) {
-                    gameInited = true;
-                    const canvas = document.getElementById('game-canvas');
-                    if (canvas) {
-                        window.RiverFishingGame.init(canvas);
-                    }
-                }
-            };
-        })();
     </script>
 </body>
 </html>
