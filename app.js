@@ -4,6 +4,20 @@ const MONTHS_RU = ['Январь','Февраль','Март','Апрель','М
 const MONTHS_SHORT = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const DAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
+// ─── Нерестовые запреты (ПП РФ № 1074, общие) ───
+const SPAWNING_BANS = [
+    { name: 'Щука', banStart: [3, 15], banEnd: [5, 31], note: 'Запрет зависит от региона: с конца марта по конец мая' },
+    { name: 'Судак', banStart: [3, 20], banEnd: [5, 31], note: 'Запрет: март–май. Судак — ценный промысловый вид' },
+    { name: 'Лещ', banStart: [4, 15], banEnd: [6, 15], note: 'Нерест: май–июнь. Нельзя ловить на нерестилищах' },
+    { name: 'Окунь', banStart: [4, 1], banEnd: [5, 31], note: 'Запрет в период нереста (в некоторых регионах)' },
+    { name: 'Налим', banStart: [2, 15], banEnd: [4, 15], note: 'Нерест: февраль–апрель. Ночная рыба' },
+    { name: 'Форель', banStart: [3, 1], banEnd: [5, 31], note: 'Запрет зависит от вида: радужная, кумжа, голец' },
+    { name: 'Сом', banStart: [5, 15], banEnd: [7, 31], note: 'Нерест: июнь–август. Крупный хищник' },
+    { name: 'Карп', banStart: [5, 1], banEnd: [6, 30], note: 'Нерест: май–июнь. Теплолюбивый вид' },
+    { name: 'Амур', banStart: [5, 1], banEnd: [7, 15], note: 'Нерест: июнь–июль. Травоядный' },
+    { name: 'Линь', banStart: [5, 15], banEnd: [7, 15], note: 'Нерест: июнь–июль. Теплолюбивый вид' },
+];
+
 // ─── Справочник рыб ───
 const FISH_DB = [
     { name: 'Окунь', emoji: '🐟', minSize: 15, season: 'Круглый год', months: [0,1,2,3,4,5,6,7,8,9,10,11], tackle: ['Спиннинг', 'Жерлицы', 'Поплавочная удочка'], bait: ['Мотыль', 'Опарыш', 'Блесна', 'Воблер', 'Силикон'], desc: 'Предпочитает заросли, коряги, камни. Активен ранним утром и вечером.', color: '#4a7c59', stripes: true, waterTemp: '10-22', depth: '1-5м', habitat: 'Заросли, коряги, камни', img: 'assets/fish/окунь.jpg' },
@@ -651,6 +665,8 @@ async function openWeekForecast() {
                 </div>
             </div>`;
         }).join('');
+        // Загрузить почасовой прогноз
+        loadHourlyForecast();
     } catch (e) {
         list.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">Ошибка загрузки: ${e.message}</p>`;
     }
@@ -1486,3 +1502,252 @@ window.buildRoute = buildRoute;
 window.flyToPoint = flyToPoint;
 window.openDeletePointModal = openDeletePointModal;
 window.selectSearchResult = selectSearchResult;
+window.closeLightbox = closeLightbox;
+
+// ─── Сезонные советы ───
+function updateSeasonalTips() {
+    const el = $('#seasonal-tips');
+    if (!el) return;
+    const now = new Date();
+    const month = now.getMonth();
+    const tips = [];
+
+    // Нерестовые запреты
+    const banned = SPAWNING_BANS.filter(b => {
+        const start = new Date(now.getFullYear(), b.banStart[0]-1, b.banStart[1]);
+        const end = new Date(now.getFullYear(), b.banEnd[0]-1, b.banEnd[1]);
+        return now >= start && now <= end;
+    });
+    if (banned.length) {
+        tips.push({ icon: '🚫', text: `<b>Сейчас запрещено:</b> ${banned.map(b=>b.name).join(', ')}. Не нарушайте правила!`, warning: true });
+    }
+
+    // Сезонные советы
+    if (month >= 2 && month <= 4) {
+        tips.push({ icon: '🌱', text: '<b>Весна:</b> Рыба активизируется после зимы. Хорошо ловится на мотыля и опарыша.' });
+        tips.push({ icon: '⚠️', text: '<b>Внимание!</b> Многие виды на нересте. Проверяйте запреты!' });
+    } else if (month >= 5 && month <= 7) {
+        tips.push({ icon: '☀️', text: '<b>Лето:</b> Лучшее время для рыбалки — раннее утро и вечер. Кукуруза и горох отлично работают.' });
+        tips.push({ icon: '🐟', text: '<b>Совет:</b> Карась и линь активны в тёплой воде. Ищите заросшие заливы.' });
+    } else if (month >= 8 && month <= 10) {
+        tips.push({ icon: '🍂', text: '<b>Осень:</b> Рыба активно питается перед зимой. Хорошо ловится на донные снасти.' });
+        tips.push({ icon: '🎣', text: '<b>Совет:</b> Лещ и судак уходят на глубину. Пробуйте фидер на бровках.' });
+    } else {
+        tips.push({ icon: '❄️', text: '<b>Зима:</b> Ловля на мотыля и мормышку. Налим активен в тёмное время суток.' });
+        tips.push({ icon: '🧊', text: '<b>Совет:</b> Ищите рыбу на глубине 3-8м. Утренние клёвы лучше вечерних.' });
+    }
+
+    // Текущая погода
+    if (lastWeatherData) {
+        const t = lastWeatherData.temp;
+        if (t < 5) tips.push({ icon: '🥶', text: `При ${t}°C рыба малоактивна. Попробуйте медленные проводки.` });
+        else if (t >= 15 && t <= 25) tips.push({ icon: '😎', text: `При ${t}°C отличные условия для рыбалки!` });
+    }
+
+    el.innerHTML = tips.map(t =>
+        `<div class="tip-item${t.warning ? ' tip-warning' : ''}">
+            <span class="tip-icon">${t.icon}</span>
+            <span class="tip-text">${t.text}</span>
+        </div>`
+    ).join('');
+}
+
+// ─── Таймер клёва ───
+function updateFishingTimer() {
+    const el = $('#fishing-timer');
+    if (!el) return;
+    if (!catches.length) {
+        el.innerHTML = '<span class="timer-value">—</span><span class="timer-label">Пока нет записей</span>';
+        return;
+    }
+    const sorted = [...catches].sort((a,b) => new Date(b.date) - new Date(a.date));
+    const last = sorted[0];
+    const lastDate = new Date(last.date);
+    const now = new Date();
+    const diffMs = now - lastDate;
+    const days = Math.floor(diffMs / 86400000);
+    const hours = Math.floor((diffMs % 86400000) / 3600000);
+    const mins = Math.floor((diffMs % 3600000) / 60000);
+
+    let timeStr = '';
+    if (days > 0) timeStr += `${days} д. `;
+    if (hours > 0) timeStr += `${hours} ч. `;
+    timeStr += `${mins} мин.`;
+
+    let mood = '🎣';
+    let color = 'var(--primary)';
+    if (days > 14) { mood = '😫'; color = 'var(--danger)'; }
+    else if (days > 7) { mood = '😐'; color = 'var(--warning)'; }
+    else if (days > 3) { mood = '🙂'; }
+    else { mood = '😄'; color = 'var(--success)'; }
+
+    el.innerHTML = `<span class="timer-value" style="color:${color}">${timeStr}</span>
+        <span class="timer-label">${mood} Последняя рыбалка: ${fmtDate(last.date)}${last.location ? ' · ' + last.location : ''}</span>`;
+}
+
+// ─── Фотогалерея уловов ───
+function renderPhotoGallery() {
+    const el = $('#photo-gallery');
+    if (!el) return;
+    const withPhotos = catches.filter(c => c.photo);
+    if (!withPhotos.length) {
+        el.innerHTML = '<p class="empty-state">Пока нет фотографий. Добавьте фото к улову!</p>';
+        return;
+    }
+    const sorted = [...withPhotos].sort((a,b) => new Date(b.date) - new Date(a.date));
+    el.innerHTML = sorted.map(c => {
+        const species = c.hasCatch !== false && c.species ? c.species : '';
+        return `<div class="gallery-item" onclick="openLightbox('${c.photo.replace(/'/g,"\\'")}','${species.replace(/'/g,"\\'")}','${fmtDate(c.date)}','${c.location ? c.location.replace(/'/g,"\\'") : ''}')">
+            <img src="${c.photo}" loading="lazy" alt="${species}">
+            <div class="gallery-item-info">
+                <div class="gallery-item-species">${species}</div>
+                <div class="gallery-item-date">${fmtDate(c.date)}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openLightbox(src, species, date, location) {
+    const modal = $('#lightbox-modal');
+    const img = $('#lightbox-img');
+    const info = $('#lightbox-info');
+    img.src = src;
+    info.innerHTML = `${species ? '<b>' + species + '</b> · ' : ''}${date}${location ? ' · 📍 ' + location : ''}`;
+    modal.classList.add('active');
+}
+
+function closeLightbox() {
+    $('#lightbox-modal').classList.remove('active');
+}
+
+// ─── Нерестовые запреты ───
+function renderSpawningBans() {
+    const el = $('#spawning-list');
+    if (!el) return;
+    const now = new Date();
+    const year = now.getFullYear();
+
+    el.innerHTML = SPAWNING_BANS.map(b => {
+        const start = new Date(year, b.banStart[0]-1, b.banStart[1]);
+        const end = new Date(year, b.banEnd[0]-1, b.banEnd[1]);
+        const isBanned = now >= start && now <= end;
+        const isPast = now > end;
+
+        const startStr = `${b.banStart[1]} ${MONTHS_RU[b.banStart[0]-1].toLowerCase()}`;
+        const endStr = `${b.banEnd[1]} ${MONTHS_RU[b.banEnd[0]-1].toLowerCase()}`;
+
+        let badge = '';
+        if (isBanned) badge = '<span class="spawning-badge banned">🚫 ЗАПРЕЩЕНО</span>';
+        else if (isPast) badge = '<span class="spawning-badge allowed">✅ Разрешено</span>';
+        else badge = '<span class="spawning-badge allowed">⏳ Будет запрет</span>';
+
+        return `<div class="spawning-card ${isBanned ? 'spawning-active' : 'spawning-ok'}">
+            <div class="spawning-card-header">
+                <span class="spawning-card-name">🐟 ${b.name}</span>
+                ${badge}
+            </div>
+            <div class="spawning-card-details">
+                <span>📅 ${startStr} — ${endStr}</span>
+                <span>📝 ${b.note}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ─── Сравнение годов ───
+function updateYearComparison() {
+    const el = $('#year-comparison');
+    if (!el) return;
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    const lastYear = thisYear - 1;
+
+    const thisYearCatches = catches.filter(c => new Date(c.date).getFullYear() === thisYear);
+    const lastYearCatches = catches.filter(c => new Date(c.date).getFullYear() === lastYear);
+
+    if (!thisYearCatches.length && !lastYearCatches.length) {
+        el.innerHTML = '<p class="empty-state">Недостаточно данных для сравнения</p>';
+        return;
+    }
+
+    const thisYearFish = thisYearCatches.filter(c => c.hasCatch !== false && c.species).length;
+    const lastYearFish = lastYearCatches.filter(c => c.hasCatch !== false && c.species).length;
+    const thisYearBiggest = thisYearCatches.filter(c=>c.size).reduce((m,c) => c.size > m ? c.size : m, 0);
+    const lastYearBiggest = lastYearCatches.filter(c=>c.size).reduce((m,c) => c.size > m ? c.size : m, 0);
+
+    function changeIcon(a, b) {
+        if (!a || !b) return '';
+        const diff = ((a - b) / (b || 1)) * 100;
+        if (diff > 0) return `<span class="year-comp-change up">↑ +${Math.round(diff)}%</span>`;
+        if (diff < 0) return `<span class="year-comp-change down">↓ ${Math.round(diff)}%</span>`;
+        return '';
+    }
+
+    el.innerHTML = `
+        <div class="year-comp-item">
+            <div class="year-comp-label">Уловов</div>
+            <div class="year-comp-values">
+                <span class="year-comp-old">${lastYearCatches.length}</span>
+                <span class="year-comp-new">${thisYearCatches.length}</span>
+            </div>
+            ${changeIcon(thisYearCatches.length, lastYearCatches.length)}
+        </div>
+        <div class="year-comp-item">
+            <div class="year-comp-label">Рыб поймано</div>
+            <div class="year-comp-values">
+                <span class="year-comp-old">${lastYearFish}</span>
+                <span class="year-comp-new">${thisYearFish}</span>
+            </div>
+            ${changeIcon(thisYearFish, lastYearFish)}
+        </div>
+        <div class="year-comp-item">
+            <div class="year-comp-label">Крупнейшая рыба</div>
+            <div class="year-comp-values">
+                <span class="year-comp-old">${lastYearBiggest ? lastYearBiggest+' см' : '—'}</span>
+                <span class="year-comp-new">${thisYearBiggest ? thisYearBiggest+' см' : '—'}</span>
+            </div>
+            ${changeIcon(thisYearBiggest, lastYearBiggest)}
+        </div>
+    `;
+}
+
+// ─── Почасовой прогноз ───
+async function loadHourlyForecast() {
+    const el = $('#hourly-forecast');
+    if (!el || !settings.lat || !settings.lng) {
+        if (el) el.innerHTML = '<p style="color:var(--text2);font-size:.85rem;">Определите местоположение</p>';
+        return;
+    }
+    try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${settings.lat}&longitude=${settings.lng}&hourly=temperature_2m,weather_code,wind_speed_10m&timezone=auto&forecast_days=1`);
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+        const h = data.hourly;
+        const now = new Date();
+        const currentHour = now.getHours();
+
+        el.innerHTML = h.time.map((t, i) => {
+            const hour = new Date(t).getHours();
+            const isCurrent = hour === currentHour;
+            return `<div class="hourly-item${isCurrent ? ' current' : ''}">
+                <div class="hourly-time">${String(hour).padStart(2,'0')}:00</div>
+                <div class="hourly-icon">${wmoToEmoji(h.weather_code[i])}</div>
+                <div class="hourly-temp">${Math.round(h.temperature_2m[i])}°</div>
+                <div class="hourly-wind">💨${Math.round(h.wind_speed_10m[i])}</div>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        el.innerHTML = '<p style="color:var(--text2);font-size:.85rem;">Ошибка загрузки</p>';
+    }
+}
+
+// ─── Обновлённый updateAll ───
+const _origUpdateAll = updateAll;
+updateAll = function() {
+    _origUpdateAll();
+    renderPhotoGallery();
+    renderSpawningBans();
+    updateYearComparison();
+    updateSeasonalTips();
+    updateFishingTimer();
+};

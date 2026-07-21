@@ -919,3 +919,151 @@ form { padding: 16px; }
     .weather-card { grid-column: span 1; }
     .forecast-card { grid-column: span 1; }
 }
+
+/* Seasonal tips */
+.seasonal-tips { font-size: .9rem; line-height: 1.6; }
+.tip-item { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-start; }
+.tip-item:last-child { border-bottom: none; }
+.tip-icon { font-size: 1.2rem; flex-shrink: 0; }
+.tip-text b { color: var(--primary); }
+.tip-warning { background: var(--warning-light); border-left: 3px solid var(--warning); padding: 8px 12px; border-radius: 0 6px 6px 0; margin-top: 4px; font-size: .85rem; color: #92400e; }
+
+/* Fishing timer */
+.fishing-timer { text-align: center; padding: 12px 0; }
+.timer-value { display: block; font-size: 2rem; font-weight: 700; color: var(--primary); }
+.timer-label { display: block; font-size: .85rem; color: var(--text2); margin-top: 4px; }
+
+/* Photo gallery */
+.photo-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+.gallery-item {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 4/3;
+    background: var(--bg);
+}
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .2s;
+}
+.gallery-item:active img { transform: scale(1.05); }
+.gallery-item-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 6px 8px;
+    background: linear-gradient(transparent, rgba(0,0,0,.7));
+    color: #fff;
+    font-size: .75rem;
+}
+.gallery-item-species { font-weight: 600; }
+.gallery-item-date { opacity: .8; }
+
+/* Lightbox */
+.lightbox-content {
+    max-width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.lightbox-content img {
+    max-width: 100%;
+    max-height: 75vh;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+}
+.lightbox-info {
+    color: #fff;
+    text-align: center;
+    padding: 12px;
+    font-size: .9rem;
+}
+
+/* Spawning bans */
+.spawning-disclaimer {
+    font-size: .8rem;
+    color: var(--warning);
+    background: var(--warning-light);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+}
+.spawning-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--danger);
+}
+.spawning-card.spawning-active { border-left-color: var(--danger); background: #fff5f5; }
+.spawning-card.spawning-ok { border-left-color: var(--success); }
+.spawning-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.spawning-card-name { font-weight: 700; font-size: 1rem; }
+.spawning-badge {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+.spawning-badge.banned { background: var(--danger-light); color: #dc2626; }
+.spawning-badge.allowed { background: var(--success-light); color: #16a34a; }
+.spawning-card-details { font-size: .85rem; color: var(--text2); }
+.spawning-card-details span { display: inline-block; margin-right: 12px; }
+
+/* Year comparison */
+.year-comparison {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    text-align: center;
+}
+.year-comp-item { padding: 10px; }
+.year-comp-label { font-size: .75rem; color: var(--text2); margin-bottom: 4px; }
+.year-comp-values { display: flex; justify-content: center; gap: 16px; }
+.year-comp-old { font-size: 1.2rem; color: var(--text2); }
+.year-comp-new { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+.year-comp-change { font-size: .8rem; }
+.year-comp-change.up { color: var(--success); }
+.year-comp-change.down { color: var(--danger); }
+
+/* Hourly forecast */
+.hourly-section { padding: 12px 16px 16px; border-top: 1px solid var(--border); }
+.hourly-section h3 { font-size: .95rem; margin-bottom: 10px; }
+.hourly-forecast {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+}
+.hourly-forecast::-webkit-scrollbar { display: none; }
+.hourly-item {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    min-width: 60px;
+    font-size: .8rem;
+}
+.hourly-item.current { background: var(--primary-light); }
+.hourly-time { font-weight: 600; margin-bottom: 4px; }
+.hourly-icon { font-size: 1.3rem; }
+.hourly-temp { font-weight: 700; font-size: .9rem; }
+.hourly-wind { color: var(--text2); font-size: .7rem; }

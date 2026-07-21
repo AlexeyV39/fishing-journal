@@ -16,7 +16,9 @@
         <nav class="nav">
             <button class="nav-btn active" data-tab="dashboard">Дашборд</button>
             <button class="nav-btn" data-tab="journal">Уловы</button>
+            <button class="nav-btn" data-tab="gallery">📸 Фото</button>
             <button class="nav-btn" data-tab="fishguide">🐟 Рыбы</button>
+            <button class="nav-btn" data-tab="spawning">🚫 Запреты</button>
             <button class="nav-btn" data-tab="map">Карта</button>
             <button class="nav-btn" data-tab="calendar">Календарь</button>
             <button class="nav-btn" data-tab="stats">Статистика</button>
@@ -125,6 +127,19 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card tips-card" id="tips-card">
+                    <h2>💡 Совет дня</h2>
+                    <div id="seasonal-tips" class="seasonal-tips"></div>
+                </div>
+
+                <div class="card timer-card" id="timer-card">
+                    <h2>⏱ С момента последней рыбалки</h2>
+                    <div id="fishing-timer" class="fishing-timer">
+                        <span class="timer-value">—</span>
+                        <span class="timer-label">Пока нет записей</span>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -152,6 +167,14 @@
             </div>
         </section>
 
+        <!-- Фотогалерея уловов -->
+        <section id="gallery" class="tab-content">
+            <h2>📸 Фотогалерея уловов</h2>
+            <div id="photo-gallery" class="photo-gallery">
+                <p class="empty-state">Пока нет фотографий. Добавьте фото к улову!</p>
+            </div>
+        </section>
+
         <!-- Справочник рыб -->
         <section id="fishguide" class="tab-content">
             <h2>Справочник рыб</h2>
@@ -165,6 +188,13 @@
                 </select>
             </div>
             <div id="fish-list" class="fish-list"></div>
+        </section>
+
+        <!-- Нерестовые запреты -->
+        <section id="spawning" class="tab-content">
+            <h2>🚫 Нерестовые запреты</h2>
+            <p class="spawning-disclaimer">Данные по общероссийским правилам (ПП РФ № 1074). Уточняйте по своему региону!</p>
+            <div id="spawning-list" class="spawning-list"></div>
         </section>
 
         <!-- Карта -->
@@ -231,6 +261,10 @@
         <section id="stats" class="tab-content">
             <h2>Статистика</h2>
             <div class="stats-dashboard">
+                <div class="card comparison-card">
+                    <h3>📊 Сравнение годов</h3>
+                    <div id="year-comparison" class="year-comparison"><p class="empty-state">Недостаточно данных</p></div>
+                </div>
                 <div class="card">
                     <h3>Уловы по месяцам</h3>
                     <div id="monthly-chart" class="chart-container"><p class="empty-state">Недостаточно данных</p></div>
@@ -465,6 +499,18 @@
             <div id="week-forecast-list" class="week-forecast-list">
                 <div style="text-align:center;padding:40px;"><div class="spinner"></div><p>Загрузка...</p></div>
             </div>
+            <div class="hourly-section">
+                <h3>⏱ Почасовой прогноз на сегодня</h3>
+                <div id="hourly-forecast" class="hourly-forecast"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: просмотр фото -->
+    <div id="lightbox-modal" class="modal" onclick="closeLightbox()">
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="">
+            <div id="lightbox-info" class="lightbox-info"></div>
         </div>
     </div>
 
@@ -472,7 +518,7 @@
 
     <script src="app.js"></script>
     <script>
-        const APP_VER = '7';
+        const APP_VER = '8';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
