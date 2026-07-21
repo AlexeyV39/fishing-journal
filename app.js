@@ -775,16 +775,25 @@ async function loadWeather() {
         if (!geoData.results || !geoData.results.length) throw new Error(`Город "${settings.city}" не найден`);
         const { latitude: lat, longitude: lon } = geoData.results[0];
 
-        // Текущая погода: ECMWF (европейская модель, самая точная для наших широт)
-        const wRes = await fetch(`https://api.open-meteo.com/v1/ecmwf?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&timezone=auto`);
-        if (!wRes.ok) throw new Error('Ошибка API');
-        const data = await wRes.json();
-        const cur = data.current;
+        // Попробовать ECMWF, если нет weather_code — fallback на стандартный API
+        let cur, daily;
+        try {
+            const ecmwfRes = await fetch(`https://api.open-meteo.com/v1/ecmwf?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&timezone=auto`);
+            const ecmwfData = await ecmwfRes.json();
+            if (ecmwfData.current && ecmwfData.current.weather_code !== undefined) {
+                cur = ecmwfData.current;
+            }
+        } catch(_) {}
 
-        // Прогноз на 2 дня от GFS (ECMWF не даёт daily)
-        const dRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
+        // Прогноз на 2 дня (для min/max температуры)
+        const dRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
         const dData = await dRes.json();
-        const daily = dData.daily;
+
+        // Использовать ECMWF если есть, иначе стандартный
+        if (!cur) cur = dData.current;
+        daily = dData.daily;
+
+        if (!cur) throw new Error('Данные погоды недоступны');
 
         // Сегодня
         $('#today-icon').textContent = wmoToEmoji(cur.weather_code);
