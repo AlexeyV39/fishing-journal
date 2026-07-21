@@ -54,9 +54,10 @@ body {
     right: 0;
     z-index: 100;
     box-shadow: var(--shadow-lg);
+    height: auto;
 }
 
-.header h1 { font-size: 1.25rem; margin-bottom: 8px; }
+.header h1 { font-size: 1.15rem; margin-bottom: 8px; }
 
 .nav {
     display: flex;
@@ -89,13 +90,15 @@ input, textarea, select, .catch-notes, .fish-card-desc, .spawning-card-details {
     margin: 0 auto;
     padding: 16px;
     padding-bottom: calc(80px + var(--safe-bottom));
-    padding-top: 10px;
+    padding-top: 120px;
     height: 100vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
     scroll-behavior: smooth;
 }
+
+.tab-content { padding-top: 0; }
 
 .tab-content { display: none; }
 .tab-content.active { display: block; }

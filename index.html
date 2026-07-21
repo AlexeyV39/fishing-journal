@@ -521,7 +521,21 @@
 
     <script src="app.js"></script>
     <script>
-        const APP_VER = '9';
+        // Динамическая высота шапки для safe area
+        function updateHeaderHeight() {
+            const header = document.querySelector('.header');
+            const main = document.querySelector('.main');
+            if (header && main) {
+                const h = header.offsetHeight;
+                main.style.paddingTop = (h + 4) + 'px';
+            }
+        }
+        window.addEventListener('load', updateHeaderHeight);
+        window.addEventListener('resize', updateHeaderHeight);
+        setTimeout(updateHeaderHeight, 100);
+        setTimeout(updateHeaderHeight, 500);
+
+        const APP_VER = '10';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
