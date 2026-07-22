@@ -1778,17 +1778,17 @@ function showLocationOnMap(lat, lng, accuracy, cityName) {
 }
 
 function addMyLocationMark(lat, lng) {
-    // Убрать старую метку
     if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
     if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
 
-    // Круг точности
+    // Круг точности (не блокирует клики — z-index ниже)
     window._myLocationCircle = new ymaps.Circle([[lat, lng], 200], {}, {
-        fillColor: '#4285F4', fillOpacity: 0.12, strokeColor: '#4285F4', strokeWidth: 1
+        fillColor: '#4285F4', fillOpacity: 0.12, strokeColor: '#4285F4', strokeWidth: 1,
+        cursor: 'pointer', zIndex: 5
     });
     ymap.geoObjects.add(window._myLocationCircle);
 
-    // Синяя пульсирующая точка (как в Яндекс Картах)
+    // Синяя пульсирующая точка
     const MyLocLayout = ymaps.templateLayoutFactory.createClass(
         '<div style="position:relative;width:32px;height:32px;">' +
             '<div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(66,133,244,.18);animation:pulse 2s ease-out infinite;"></div>' +
@@ -1798,14 +1798,21 @@ function addMyLocationMark(lat, lng) {
     );
 
     window._myLocationMark = new ymaps.Placemark([lat, lng], {
-        balloonContent: '<b>Вы здесь</b><br>Перетащите для уточнения'
+        balloonContent: 'Вы здесь'
     }, {
         iconLayout: 'default#imageWithContent',
         iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#4285F4" stroke="white" stroke-width="3"/></svg>'),
         iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
-        draggable: true
+        draggable: true, zIndex: 10
     });
 
+    // Клик на маркер — показать панель
+    window._myLocationMark.events.add('click', function(e) {
+        e.stopPropagation();
+        showMyLocationPanel(lat, lng);
+    });
+
+    // Перетаскивание — обновить координаты
     window._myLocationMark.events.add('dragend', function() {
         const coords = window._myLocationMark.geometry.getCoordinates();
         settings.lat = coords[0];
@@ -1813,7 +1820,6 @@ function addMyLocationMark(lat, lng) {
         settings.myLocation = { lat: coords[0], lng: coords[1] };
         saveData();
         window._myLocationCircle.geometry.setCoordinates(coords);
-
         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords[0]}&lon=${coords[1]}&format=json&accept-language=ru&zoom=14`)
             .then(r => r.json())
             .then(data => {
@@ -1821,12 +1827,48 @@ function addMyLocationMark(lat, lng) {
                 const city = a?.city || a?.town || a?.village || a?.hamlet || '';
                 if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
                 loadWeather();
-                showToast(`📍 ${city || coords[0].toFixed(4) + ', ' + coords[1].toFixed(4)}`);
+                showMyLocationPanel(coords[0], coords[1]);
+                showToast(`📍 ${city || coords[0].toFixed(4)}`);
             })
             .catch(() => { loadWeather(); });
     });
 
     ymap.geoObjects.add(window._myLocationMark);
+}
+
+function showMyLocationPanel(lat, lng) {
+    const panel = document.getElementById('my-location-panel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    document.getElementById('loc-coords').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    document.getElementById('loc-address').textContent = 'Загрузка...';
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ru&zoom=14`)
+        .then(r => r.json())
+        .then(data => {
+            const a = data.address;
+            const parts = [a?.road, a?.house_number, a?.suburb, a?.city || a?.town || a?.village, a?.state].filter(Boolean);
+            document.getElementById('loc-address').textContent = parts.join(', ') || 'Адрес не определён';
+        })
+        .catch(() => { document.getElementById('loc-address').textContent = 'Адрес не определён'; });
+}
+
+function closeMyLocationPanel() {
+    const panel = document.getElementById('my-location-panel');
+    if (panel) panel.style.display = 'none';
+}
+
+function refreshWeatherFromLocation() {
+    if (settings.myLocation) { loadWeather(); showToast('Погода обновлена'); }
+    closeMyLocationPanel();
+}
+
+function removeMyLocation() {
+    if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
+    if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
+    settings.myLocation = null;
+    saveData();
+    closeMyLocationPanel();
+    showToast('Метка удалена');
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)

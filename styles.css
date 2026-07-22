@@ -1387,6 +1387,38 @@ form { padding: 16px; }
 .hourly-temp { font-weight: 700; font-size: .9rem; }
 .hourly-wind { color: var(--text3); font-size: .7rem; }
 
+/* Location panel (on map) */
+.location-panel {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 50;
+    padding: 0;
+    max-width: 320px;
+    animation: slideUp .2s ease;
+}
+.loc-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+}
+.loc-panel-title { font-weight: 600; font-size: .9rem; }
+.loc-panel-close {
+    background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text2);
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+}
+.loc-panel-close:active { background: var(--bg); }
+.loc-panel-address { padding: 8px 14px; font-size: .85rem; color: var(--text); }
+.loc-panel-coords { padding: 0 14px 10px; font-size: .75rem; color: var(--text3); font-family: monospace; }
+.loc-panel-actions { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
+
 /* Pulsing blue dot for location (Yandex Maps style) */
 @keyframes pulse {
     0% { transform: scale(1); opacity: .6; }

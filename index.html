@@ -298,6 +298,21 @@
             </div>
 
             <div id="map-container"></div>
+
+            <!-- Панель информации о местоположении -->
+            <div id="my-location-panel" class="location-panel" style="display:none;">
+                <div class="loc-panel-header">
+                    <span class="loc-panel-title">📍 Ваше местоположение</span>
+                    <button class="loc-panel-close" onclick="closeMyLocationPanel()">✕</button>
+                </div>
+                <div class="loc-panel-address" id="loc-address">Загрузка...</div>
+                <div class="loc-panel-coords" id="loc-coords">—</div>
+                <div class="loc-panel-actions">
+                    <button class="btn btn-primary btn-small" onclick="refreshWeatherFromLocation()">🔄 Обновить погоду</button>
+                    <button class="btn btn-danger btn-small" onclick="removeMyLocation()">🗑 Удалить</button>
+                </div>
+            </div>
+
             <div class="map-legend">
                 <span>🐟 Мои точки рыбалки</span>
                 <span id="depth-legend" style="display:none;">🌊 Глубины (OpenSeaMap — моря и крупные водоёмы)</span>
