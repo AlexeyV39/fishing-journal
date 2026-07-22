@@ -300,12 +300,12 @@
             <div id="map-container"></div>
 
             <!-- Контекстное меню (долгое нажатие) -->
-            <div id="map-context-menu" class="map-context-menu" style="display:none;">
+            <div id="map-context-menu" class="map-context-menu" style="display:none;" onclick="event.stopPropagation()">
                 <div class="ctx-menu-title">Добавить точку</div>
-                <button class="ctx-menu-item" onclick="ctxAddFishing()">🐟 Точка рыбалки</button>
-                <button class="ctx-menu-item" onclick="ctxSetLocation()">📍 Моё местоположение</button>
-                <button class="ctx-menu-item" onclick="ctxAddFavorite()">⭐ Избранное</button>
-                <button class="ctx-menu-item ctx-cancel" onclick="closeContextMenu()">Отмена</button>
+                <button class="ctx-menu-item" onclick="event.stopPropagation(); ctxAddFishing()">🐟 Точка рыбалки</button>
+                <button class="ctx-menu-item" onclick="event.stopPropagation(); ctxSetLocation()">📍 Моё местоположение</button>
+                <button class="ctx-menu-item" onclick="event.stopPropagation(); ctxAddFavorite()">⭐ Избранное</button>
+                <button class="ctx-menu-item ctx-cancel" onclick="event.stopPropagation(); closeContextMenu()">Отмена</button>
             </div>
 
             <!-- Панель информации о местоположении -->
