@@ -1525,16 +1525,25 @@ function createMap() {
             }
         });
 
-        // Долгое нажатие — контекстное меню
+        // Долгое нажатие — контекстное меню (только если палец стоит на месте)
         let longPressTimer = null;
         let longPressFired = false;
+        let longPressX = 0, longPressY = 0;
         ymap.events.add('mousedown', (e) => {
             longPressFired = false;
+            longPressX = e.get('pagePixels')[0];
+            longPressY = e.get('pagePixels')[1];
             const coords = e.get('coords');
             longPressTimer = setTimeout(() => {
                 longPressFired = true;
-                showContextMenu(coords, e.get('pagePixels'));
-            }, 600);
+                showContextMenu(coords, [longPressX, longPressY]);
+            }, 700);
+        });
+        ymap.events.add('mousemove', (e) => {
+            const px = e.get('pagePixels');
+            if (Math.abs(px[0] - longPressX) > 8 || Math.abs(px[1] - longPressY) > 8) {
+                clearTimeout(longPressTimer);
+            }
         });
         ymap.events.add('mouseup', () => { clearTimeout(longPressTimer); });
         ymap.events.add('mouseleave', () => { clearTimeout(longPressTimer); });
