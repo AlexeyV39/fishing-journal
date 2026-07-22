@@ -1387,6 +1387,12 @@ form { padding: 16px; }
 .hourly-temp { font-weight: 700; font-size: .9rem; }
 .hourly-wind { color: var(--text3); font-size: .7rem; }
 
+/* Pulsing blue dot for location (Yandex Maps style) */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: .6; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
 /* ─── AUTH SCREEN ─── */
 .auth-screen {
     position: fixed;

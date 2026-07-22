@@ -1780,17 +1780,29 @@ function showLocationOnMap(lat, lng, accuracy, cityName) {
 function addMyLocationMark(lat, lng) {
     // Убрать старую метку
     if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
+    if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
 
+    // Круг точности
+    window._myLocationCircle = new ymaps.Circle([[lat, lng], 200], {}, {
+        fillColor: '#4285F4', fillOpacity: 0.12, strokeColor: '#4285F4', strokeWidth: 1
+    });
+    ymap.geoObjects.add(window._myLocationCircle);
+
+    // Синяя пульсирующая точка (как в Яндекс Картах)
     const MyLocLayout = ymaps.templateLayoutFactory.createClass(
-        '<div style="background:#22c55e;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;cursor:grab;">📍</div>'
+        '<div style="position:relative;width:32px;height:32px;">' +
+            '<div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(66,133,244,.18);animation:pulse 2s ease-out infinite;"></div>' +
+            '<div style="position:absolute;inset:0;border-radius:50%;background:#4285F4;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>' +
+        '</div>',
+        { build: function() { MyLocLayout.superclass.build.call(this); } }
     );
 
     window._myLocationMark = new ymaps.Placemark([lat, lng], {
-        balloonContent: `<b>Вы здесь</b><br>Перетащите маркер для уточнения`
+        balloonContent: '<b>Вы здесь</b><br>Перетащите для уточнения'
     }, {
         iconLayout: 'default#imageWithContent',
-        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
-        iconImageSize: [36, 36], iconImageOffset: [-18, -18], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#4285F4" stroke="white" stroke-width="3"/></svg>'),
+        iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
         draggable: true
     });
 
@@ -1800,8 +1812,8 @@ function addMyLocationMark(lat, lng) {
         settings.lng = coords[1];
         settings.myLocation = { lat: coords[0], lng: coords[1] };
         saveData();
+        window._myLocationCircle.geometry.setCoordinates(coords);
 
-        // Определить город
         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords[0]}&lon=${coords[1]}&format=json&accept-language=ru&zoom=14`)
             .then(r => r.json())
             .then(data => {
@@ -1809,7 +1821,7 @@ function addMyLocationMark(lat, lng) {
                 const city = a?.city || a?.town || a?.village || a?.hamlet || '';
                 if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
                 loadWeather();
-                showToast(`📍 Место: ${city || coords[0].toFixed(4) + ', ' + coords[1].toFixed(4)}`);
+                showToast(`📍 ${city || coords[0].toFixed(4) + ', ' + coords[1].toFixed(4)}`);
             })
             .catch(() => { loadWeather(); });
     });
@@ -2157,28 +2169,6 @@ function drawerLogout() {
         auth.signOut();
     }
 }
-
-// Свайп для открытия/закрытия drawer
-(function() {
-    let startX = 0, startY = 0, swiping = false;
-    document.addEventListener('touchstart', e => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        swiping = false;
-    }, { passive: true });
-    document.addEventListener('touchmove', e => {
-        if (swiping) return;
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) swiping = true;
-    }, { passive: true });
-    document.addEventListener('touchend', e => {
-        if (!swiping) return;
-        const dx = e.changedTouches[0].clientX - startX;
-        if (dx > 80 && !_drawerOpen) openDrawer();
-        else if (dx < -80 && _drawerOpen) closeDrawer();
-    }, { passive: true });
-})();
 
 // ─── Сезонные советы ───
 function updateSeasonalTips() {
