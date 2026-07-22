@@ -1500,8 +1500,9 @@ function createMap() {
             addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
         }
 
-        // Клик по карте: если режим добавления точки — ставим точку рыбалки
+        // Клик по карте
         ymap.events.add('click', (e) => {
+            if (longPressFired) { longPressFired = false; return; }
             closeContextMenu();
             if (placingMarker) {
                 placingMarker = false;
