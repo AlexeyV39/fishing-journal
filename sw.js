@@ -1,9 +1,8 @@
-const CACHE_NAME = 'fishing-v46';
+const CACHE_NAME = 'fishing-v47';
 const ASSETS = [
     './',
     './index.html',
     './styles.css',
-    './app.js',
     './manifest.json'
 ];
 
