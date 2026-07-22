@@ -1720,18 +1720,34 @@ function mapLocateMe() {
     const btn = $('#map-geo-btn');
     btn.textContent = '⏳ Определение...';
 
-    // Сначала пробуем IP-геолокацию (без разрешений)
-    fetch('https://ip-api.com/json/?fields=lat,lon,city&lang=ru')
-        .then(r => r.json())
-        .then(data => {
-            if (data.latitude && data.longitude) {
-                showLocationOnMap(data.latitude, data.longitude, 10000, data.city || '');
-                btn.textContent = '📍 Моё местоположение';
-                return;
-            }
-            throw new Error('No data');
-        })
-        .catch(() => {
+    // Пробуем IP-геолокацию через несколько сервисов
+    const ipServices = [
+        'https://ip-api.com/json/?fields=lat,lon,city&lang=ru',
+        'https://ipwho.is/',
+        'https://ipinfo.io/json'
+    ];
+
+    async function tryIpGeo() {
+        for (const url of ipServices) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) continue;
+                const data = await res.json();
+                const lat = data.lat || data.latitude;
+                const lon = data.lon || data.longitude;
+                const city = data.city || data.location?.city || '';
+                if (lat && lon) {
+                    showLocationOnMap(lat, lon, 10000, city);
+                    btn.textContent = '📍 Моё местоположение';
+                    return true;
+                }
+            } catch(_) {}
+        }
+        return false;
+    }
+
+    tryIpGeo().then(ok => {
+        if (!ok) {
             // Fallback на browser geolocation
             if (!navigator.geolocation) {
                 showToast('Геолокация не поддерживается', 'error');
@@ -1743,13 +1759,14 @@ function mapLocateMe() {
                     showLocationOnMap(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
                     btn.textContent = '📍 Моё местоположение';
                 },
-                (err) => {
+                () => {
                     showToast('Не удалось определить местоположение', 'error');
                     btn.textContent = '📍 Моё местоположение';
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
-        });
+        }
+    });
 }
 
 function showLocationOnMap(lat, lng, accuracy, cityName) {
@@ -1777,7 +1794,15 @@ function showLocationOnMap(lat, lng, accuracy, cityName) {
         iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout
     });
     ymap.geoObjects.add(window._myLocationMark);
-    showToast(`📍 Местоположение определено!${cityName ? ' ' + cityName : ''}`);
+
+    // Сохранить город в настройки для погоды
+    if (cityName) {
+        settings.city = cityName;
+        saveData();
+        $('#default-city-input').value = cityName;
+    }
+
+    showToast(`📍 ${cityName || lat.toFixed(4) + ', ' + lng.toFixed(4)}`);
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)
