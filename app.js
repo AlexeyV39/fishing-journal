@@ -1492,13 +1492,20 @@ function createMap() {
             depth: null
         };
 
-        // Загрузить сохранённые маркеры рыбалки
-        mapMarkers.forEach(m => addPlacemark(m));
-
-        // Восстановить метку местоположения из хранилища
-        if (settings.myLocation) {
-            addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
-        }
+        // Загрузить сохранённые маркеры рыбалки (с задержкой для стабильности)
+        setTimeout(() => {
+            mapMarkers.forEach(m => addPlacemark(m));
+            // Восстановить метку местоположения из хранилища
+            if (settings.myLocation) {
+                addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
+            }
+            // Если есть маркеры — центрировать карту на них
+            if (mapMarkers.length > 0) {
+                const bounds = mapMarkers.map(m => [m.lat, m.lng]);
+                if (settings.myLocation) bounds.push([settings.myLocation.lat, settings.myLocation.lng]);
+                ymap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+            }
+        }, 500);
 
         // Клик по карте
         ymap.events.add('click', (e) => {
@@ -1708,7 +1715,8 @@ function addPlacemark(m) {
         iconImageSize: [38, 38],
         iconImageOffset: [-19, -19],
         iconContentOffset: [0, 0],
-        iconContentLayout: MyIconLayout
+        iconContentLayout: MyIconLayout,
+        zIndex: 20
     });
     ymap.geoObjects.add(placemark);
 }

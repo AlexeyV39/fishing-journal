@@ -1675,6 +1675,7 @@ form { padding: 16px; }
     top: 0;
     left: 0;
     bottom: 0;
+    padding-bottom: var(--safe-bottom);
     width: 280px;
     background: var(--card);
     z-index: 201;
