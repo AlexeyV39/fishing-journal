@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>">
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=39">
+    <link rel="stylesheet" href="styles.css?v=40">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -538,6 +538,12 @@
                     <label for="catch-notes">Комментарий</label>
                     <textarea id="catch-notes" rows="2" placeholder="Особенности, погода, клёв..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Погода на момент рыбалки</label>
+                    <div id="catch-weather-preview" class="catch-weather-preview">
+                        <span>🌤 Автоопределение при сохранении</span>
+                    </div>
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" id="cancel-btn">Отмена</button>
                     <button type="submit" class="btn btn-primary">Сохранить</button>
@@ -634,7 +640,7 @@
 
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
-    <script src="app.js?v=39"></script>
+    <script src="app.js?v=40"></script>
     <script>
         // Динамическая высота шапки для safe area
         function updateHeaderHeight() {
@@ -650,7 +656,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '39';
+        const APP_VER = '40';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {

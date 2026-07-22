@@ -797,6 +797,29 @@ form { padding: 16px; }
 .wd-label { font-size: .7rem; color: var(--text3); }
 .wd-temp-range { white-space: nowrap; font-weight: 600; }
 
+/* Catch weather preview */
+.catch-weather-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: .8rem;
+    color: var(--text2);
+}
+.catch-weather-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: var(--card);
+    border-radius: 12px;
+    font-size: .75rem;
+    border: 1px solid var(--border);
+}
+.catch-weather-tag b { color: var(--text); }
+
 /* ─── WEATHER CLICKABLE → 7-DAY ─── */
 .weather-day-clickable {
     cursor: pointer;

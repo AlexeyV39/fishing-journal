@@ -496,6 +496,17 @@ function openAddModal() {
     $('#catch-form').reset();
     setDefaultDate();
     resetPhotoPreview();
+
+    // Автоопределение времени суток
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 6) $('#time-night').checked = true;
+    else if (hour >= 6 && hour < 10) $('#time-morning').checked = true;
+    else if (hour >= 10 && hour < 18) $('#time-day').checked = true;
+    else $('#time-evening').checked = true;
+
+    // Показать текущую погоду
+    updateCatchWeatherPreview();
+
     $('#catch-modal').classList.add('active');
 }
 
@@ -596,6 +607,22 @@ function compressPhoto(file, maxDim, quality) {
 
 function resetPhotoPreview() {
     $('#photo-preview').innerHTML = '<span class="photo-icon">📷</span><span>Нажмите или перетащите</span>';
+}
+
+function updateCatchWeatherPreview() {
+    const el = $('#catch-weather-preview');
+    if (!el) return;
+    if (!lastWeatherData || !lastWeatherData.temp) {
+        el.innerHTML = '<span>🌤 Погода не загружена</span>';
+        return;
+    }
+    const d = lastWeatherData;
+    el.innerHTML = `
+        <span class="catch-weather-tag">🌡 <b>${d.temp}°C</b></span>
+        <span class="catch-weather-tag">💨 <b>${d.wind} м/с</b></span>
+        <span class="catch-weather-tag">📊 <b>${d.pressure} мм</b></span>
+        <span class="catch-weather-tag">💧 <b>${d.humidity}%</b></span>
+    `;
 }
 
 // ─── Форма улова ───
@@ -1065,47 +1092,48 @@ function wmoToText(c) {
     return map[c] || 'Неизвестно';
 }
 
-// ─── Восход/закат солнца (упрощённый NOAA) ───
+// ─── Восход/закат солнца (проверенный NOAA) ───
 function calcSunRiseSet(date, lat, lng) {
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
 
     // День года
-    const dayOfYear = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(year, 0, 0)) / 86400000);
+    const dayOfYear = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(year, 0, 0)) / 86400000) + 1;
 
-    // Склонение солнца
-    const decl = -23.44 * Math.cos((360 / 365) * (dayOfYear + 10) * Math.PI / 180);
+    // Гамма (угол орбиты)
+    const gamma = (2 * Math.PI / 365) * (dayOfYear - 1);
 
-    // Часовой угол
+    // Склонение солнца (радианы)
+    const decl = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
+               - 0.006758 * Math.cos(2*gamma) + 0.000907 * Math.sin(2*gamma)
+               - 0.002697 * Math.cos(3*gamma) + 0.00148 * Math.sin(3*gamma);
+
+    // Часовой угол восхода/заката
     const latRad = lat * Math.PI / 180;
-    const declRad = decl * Math.PI / 180;
-    const cosHA = (Math.cos(90.833 * Math.PI / 180) / (Math.cos(latRad) * Math.cos(declRad))) - Math.tan(latRad) * Math.tan(declRad);
+    const zenith = 90.833 * Math.PI / 180;
+    const cosHA = (Math.cos(zenith) - Math.sin(latRad) * Math.sin(decl)) /
+                  (Math.cos(latRad) * Math.cos(decl));
 
-    if (cosHA > 1) return { rise: '—', set: '—' }; // Полярная ночь
-    if (cosHA < -1) return { rise: '—', set: '—' }; // Полярный день
+    if (cosHA > 1) return { rise: '—', set: '—' };
+    if (cosHA < -1) return { rise: '—', set: '—' };
 
     const HA = Math.acos(cosHA) * 180 / Math.PI;
 
-    // Среднее солнечное время заката/восхода (в часах)
-    const Tset = 12 + HA / 15;
-    const Trise = 12 - HA / 15;
+    // Уравнение времени (минуты)
+    const B = (2 * Math.PI / 365) * (dayOfYear - 81);
+    const EoT = 9.87 * Math.sin(2*B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
 
-    // Уравнение времени (коррекция на эллиптическую орбиту)
-    const B = (360 / 365) * (dayOfYear - 81) * Math.PI / 180;
-    const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+    // UTC время восхода/заката (в минутах от полуночи)
+    const utcRise = 720 - 4 * (lng + HA) - EoT;
+    const utcSet = 720 - 4 * (lng - HA) - EoT;
 
-    // Корректировка на долготу (часовой пояс UTC+3 для Москвы)
-    const timezoneOffset = 3;
-    const localOffset = -lng / 15 + timezoneOffset;
+    // Конвертация в часы
+    const riseH = ((utcRise / 60) % 24 + 24) % 24;
+    const setH = ((utcSet / 60) % 24 + 24) % 24;
 
-    // Местное время
-    let riseH = Trise - EoT / 60 + localOffset;
-    let setH = Tset - EoT / 60 + localOffset;
-
-    // Нормализация
-    riseH = ((riseH % 24) + 24) % 24;
-    setH = ((setH % 24) + 24) % 24;
+    // Часовой пояс по долготе
+    const tz = Math.round(lng / 15);
 
     const fmtH = (h) => {
         const hh = Math.floor(h);
@@ -1113,7 +1141,7 @@ function calcSunRiseSet(date, lat, lng) {
         return `${String(hh).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`;
     };
 
-    return { rise: fmtH(riseH), set: fmtH(setH) };
+    return { rise: fmtH(riseH + tz), set: fmtH(setH + tz) };
 }
 
 function updateForecastFromWeather(cur) {
@@ -1165,7 +1193,7 @@ function calcMoonPhase() {
     const now = new Date();
     const phase = getMoonPhase(now);
     const emojis = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'];
-    const names = ['Новолуние','Растущая луна (четверть)','Первая четверть','Растущая луна (прибывающая)','Полнолуние','Убывающая луна (прибывающая)','Последняя четверть','Убывающая луна (четверть)'];
+    const names = ['Новолуние','Растущая луна','Первая четверть','Растущая луна','Полнолуние','Убывающая луна','Последняя четверть','Убывающая луна'];
     const shortNames = ['Новолуние','Растущая','1/4','Растущая','Полнолуние','Убывающая','Посл. четверть','Убывающая'];
     const idx = Math.round(phase * 8) % 8;
 
@@ -1436,14 +1464,10 @@ function initMap() {
 
 function createMap() {
     ymaps.ready(() => {
-        // Отключаем автоматическую геолокацию Яндекс Карт
-        ymaps.geolocation = { get: () => Promise.reject('disabled') };
-
         ymap = new ymaps.Map('map-container', {
             center: [55.7558, 37.6173],
             zoom: 10,
-            controls: ['zoomControl'],
-            suppressMapOpenBlock: true
+            controls: ['zoomControl']
         });
 
         // Слои карты
