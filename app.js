@@ -1452,7 +1452,7 @@ async function showDayTips(date) {
 let _mapGeoBlocked = false;
 
 function initMap() {
-    if (ymap) { ymap.container.fitSize(); return; }
+    if (ymap) { return; }
 
     // Блокируем автозапрос геолокации от Яндекс Карт (первый вызов)
     const origGeo = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
@@ -1468,7 +1468,7 @@ function initMap() {
     if (typeof ymaps === 'undefined') {
         // Загрузить API Яндекс Карт
         const script = document.createElement('script');
-        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU';
+        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=YOUR_API_KEY';
         script.onload = () => createMap();
         document.head.appendChild(script);
     } else {
