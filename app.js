@@ -1481,11 +1481,20 @@ function initMap() {
 
 function createMap() {
     ymaps.ready(() => {
-        // Центрировать на сохранённой локации
-        const center = settings.myLocation
-            ? [settings.myLocation.lat, settings.myLocation.lng]
-            : (settings.lat ? [settings.lat, settings.lng] : [55.7558, 37.6173]);
-        const zoom = settings.myLocation ? 14 : 10;
+        // Определить центр карты
+        let center = [55.7558, 37.6173]; // Москва по умолчанию
+        let zoom = 10;
+
+        if (settings.myLocation) {
+            center = [settings.myLocation.lat, settings.myLocation.lng];
+            zoom = 14;
+        } else if (settings.lat && settings.lng) {
+            center = [settings.lat, settings.lng];
+            zoom = 12;
+        } else if (mapMarkers.length > 0) {
+            center = [mapMarkers[0].lat, mapMarkers[0].lng];
+            zoom = 12;
+        }
 
         ymap = new ymaps.Map('map-container', {
             center: center,
