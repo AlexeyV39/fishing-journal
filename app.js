@@ -1449,8 +1449,22 @@ async function showDayTips(date) {
 }
 
 // ─── Яндекс Карты ───
+let _mapGeoBlocked = false;
+
 function initMap() {
     if (ymap) { ymap.container.fitSize(); return; }
+
+    // Блокируем автозапрос геолокации от Яндекс Карт (первый вызов)
+    const origGeo = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation);
+    navigator.geolocation.getCurrentPosition = function(success, error, options) {
+        if (!_mapGeoBlocked) {
+            _mapGeoBlocked = true;
+            if (error) error({ code: 1, message: 'blocked by app' });
+            return;
+        }
+        return origGeo(success, error, options);
+    };
+
     if (typeof ymaps === 'undefined') {
         // Загрузить API Яндекс Карт
         const script = document.createElement('script');
@@ -1702,63 +1716,68 @@ function deleteMapMarker(id) {
 // Геолокация на карте
 function mapLocateMe() {
     if (!ymap) { showToast('Карта ещё не загрузилась', 'error'); return; }
-    if (!navigator.geolocation) { alert('Геолокация не поддерживается'); return; }
 
     const btn = $('#map-geo-btn');
     btn.textContent = '⏳ Определение...';
 
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            const accuracy = pos.coords.accuracy;
-            ymap.setCenter([lat, lng], 14);
-
-            // Убрать старую метку местоположения
-            if (window._myLocationMark) {
-                ymap.geoObjects.remove(window._myLocationMark);
+    // Сначала пробуем IP-геолокацию (без разрешений)
+    fetch('https://ipapi.co/json/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.latitude && data.longitude) {
+                showLocationOnMap(data.latitude, data.longitude, 10000, data.city || '');
+                btn.textContent = '📍 Моё местоположение';
+                return;
             }
-            if (window._myLocationCircle) {
-                ymap.geoObjects.remove(window._myLocationCircle);
+            throw new Error('No data');
+        })
+        .catch(() => {
+            // Fallback на browser geolocation
+            if (!navigator.geolocation) {
+                showToast('Геолокация не поддерживается', 'error');
+                btn.textContent = '📍 Моё местоположение';
+                return;
             }
-
-            // Круг точности
-            window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy], {}, {
-                fillColor: '#22c55e',
-                fillOpacity: 0.1,
-                strokeColor: '#22c55e',
-                strokeWidth: 1
-            });
-            ymap.geoObjects.add(window._myLocationCircle);
-
-            // Метка местоположения
-            const MyLocLayout = ymaps.templateLayoutFactory.createClass(
-                '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    showLocationOnMap(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+                    btn.textContent = '📍 Моё местоположение';
+                },
+                (err) => {
+                    showToast('Не удалось определить местоположение', 'error');
+                    btn.textContent = '📍 Моё местоположение';
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
             );
-            window._myLocationMark = new ymaps.Placemark([lat, lng], {
-                balloonContent: '<b>Вы здесь</b><br>' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '<br>Точность: ±' + Math.round(accuracy) + ' м'
-            }, {
-                iconLayout: 'default#imageWithContent',
-                iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
-                iconImageSize: [32, 32],
-                iconImageOffset: [-16, -16],
-                iconContentOffset: [0, 0],
-                iconContentLayout: MyLocLayout
-            });
-            ymap.geoObjects.add(window._myLocationMark);
-            btn.textContent = '📍 Моё местоположение';
-            showToast('📍 Местоположение определено! Точность: ±' + Math.round(accuracy) + ' м');
-        },
-        (err) => {
-            let msg = 'Не удалось определить местоположение';
-            if (err.code === 1) msg = 'Разрешите доступ к геолокации';
-            else if (err.code === 2) msg = 'Сигнал геолокации недоступен';
-            else if (err.code === 3) msg = 'Превышено время ожидания';
-            alert(msg);
-            btn.textContent = '📍 Моё местоположение';
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
+        });
+}
+
+function showLocationOnMap(lat, lng, accuracy, cityName) {
+    ymap.setCenter([lat, lng], 14);
+
+    // Убрать старую метку
+    if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
+    if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
+
+    // Круг точности
+    window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy], {}, {
+        fillColor: '#22c55e', fillOpacity: 0.1, strokeColor: '#22c55e', strokeWidth: 1
+    });
+    ymap.geoObjects.add(window._myLocationCircle);
+
+    // Метка
+    const MyLocLayout = ymaps.templateLayoutFactory.createClass(
+        '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
     );
+    window._myLocationMark = new ymaps.Placemark([lat, lng], {
+        balloonContent: `<b>Вы здесь</b><br>${cityName ? cityName + '<br>' : ''}${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    }, {
+        iconLayout: 'default#imageWithContent',
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
+        iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout
+    });
+    ymap.geoObjects.add(window._myLocationMark);
+    showToast(`📍 Местоположение определено!${cityName ? ' ' + cityName : ''}`);
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)
