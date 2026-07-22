@@ -1502,6 +1502,7 @@ function createMap() {
 
         // Клик по карте: если режим добавления точки — ставим точку рыбалки
         ymap.events.add('click', (e) => {
+            closeContextMenu();
             if (placingMarker) {
                 placingMarker = false;
                 $('#add-marker-btn').textContent = '📍 Добавить точку';
@@ -1515,6 +1516,20 @@ function createMap() {
                 $('#marker-modal').classList.add('active');
             }
         });
+
+        // Долгое нажатие — контекстное меню
+        let longPressTimer = null;
+        let longPressFired = false;
+        ymap.events.add('mousedown', (e) => {
+            longPressFired = false;
+            const coords = e.get('coords');
+            longPressTimer = setTimeout(() => {
+                longPressFired = true;
+                showContextMenu(coords, e.get('pagePixels'));
+            }, 600);
+        });
+        ymap.events.add('mouseup', () => { clearTimeout(longPressTimer); });
+        ymap.events.add('mouseleave', () => { clearTimeout(longPressTimer); });
     });
 }
 
@@ -1869,6 +1884,66 @@ function removeMyLocation() {
     saveData();
     closeMyLocationPanel();
     showToast('Метка удалена');
+}
+
+// Контекстное меню на карте
+let _ctxCoords = null;
+
+function showContextMenu(coords, pagePixels) {
+    _ctxCoords = coords;
+    const menu = document.getElementById('map-context-menu');
+    if (!menu) return;
+    menu.style.display = 'block';
+    menu.style.left = Math.min(pagePixels[0], window.innerWidth - 200) + 'px';
+    menu.style.top = Math.min(pagePixels[1] - 10, window.innerHeight - 200) + 'px';
+}
+
+function closeContextMenu() {
+    const menu = document.getElementById('map-context-menu');
+    if (menu) menu.style.display = 'none';
+    _ctxCoords = null;
+}
+
+function ctxAddFishing() {
+    if (!_ctxCoords) return;
+    closeContextMenu();
+    $('#marker-lat').value = _ctxCoords[0];
+    $('#marker-lng').value = _ctxCoords[1];
+    $('#marker-name').value = '';
+    $('#marker-fish').value = '';
+    $('#marker-desc').value = '';
+    $('#marker-modal').classList.add('active');
+}
+
+function ctxSetLocation() {
+    if (!_ctxCoords) return;
+    closeContextMenu();
+    settings.lat = _ctxCoords[0];
+    settings.lng = _ctxCoords[1];
+    settings.myLocation = { lat: _ctxCoords[0], lng: _ctxCoords[1] };
+    saveData();
+    addMyLocationMark(_ctxCoords[0], _ctxCoords[1]);
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${_ctxCoords[0]}&lon=${_ctxCoords[1]}&format=json&accept-language=ru&zoom=14`)
+        .then(r => r.json())
+        .then(data => {
+            const a = data.address;
+            const city = a?.city || a?.town || a?.village || a?.hamlet || '';
+            if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
+            loadWeather();
+            showToast(`📍 ${city || _ctxCoords[0].toFixed(4)}`);
+        })
+        .catch(() => { loadWeather(); });
+}
+
+function ctxAddFavorite() {
+    if (!_ctxCoords) return;
+    closeContextMenu();
+    $('#marker-lat').value = _ctxCoords[0];
+    $('#marker-lng').value = _ctxCoords[1];
+    $('#marker-name').value = '⭐ Избранное';
+    $('#marker-fish').value = '';
+    $('#marker-desc').value = '';
+    $('#marker-modal').classList.add('active');
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)

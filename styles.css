@@ -1419,6 +1419,41 @@ form { padding: 16px; }
 .loc-panel-coords { padding: 0 14px 10px; font-size: .75rem; color: var(--text3); font-family: monospace; }
 .loc-panel-actions { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
 
+/* Map context menu (long press) */
+.map-context-menu {
+    position: absolute;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 60;
+    min-width: 180px;
+    padding: 6px 0;
+    animation: fadeIn .15s ease;
+}
+.ctx-menu-title {
+    padding: 8px 16px 4px;
+    font-size: .75rem;
+    color: var(--text3);
+    font-weight: 600;
+}
+.ctx-menu-item {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: .9rem;
+    color: var(--text);
+    cursor: pointer;
+}
+.ctx-menu-item:active { background: var(--bg); }
+.ctx-cancel {
+    border-top: 1px solid var(--border);
+    color: var(--text3);
+    font-size: .85rem;
+}
+
 /* Pulsing blue dot for location (Yandex Maps style) */
 @keyframes pulse {
     0% { transform: scale(1); opacity: .6; }
