@@ -660,14 +660,16 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '45';
+        const APP_VER = '46';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
-            caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
-                localStorage.setItem('app_ver', APP_VER);
-                if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
-                location.reload();
-            });
+            localStorage.setItem('app_ver', APP_VER);
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(rs => {
+                    rs.forEach(r => r.unregister());
+                    location.reload();
+                });
+            }
         } else {
             localStorage.setItem('app_ver', APP_VER);
             if ('serviceWorker' in navigator) {
