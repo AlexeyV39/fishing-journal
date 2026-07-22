@@ -1436,6 +1436,9 @@ function initMap() {
 
 function createMap() {
     ymaps.ready(() => {
+        // Отключаем автоматическую геолокацию Яндекс Карт
+        ymaps.geolocation = { get: () => Promise.reject('disabled') };
+
         ymap = new ymaps.Map('map-container', {
             center: [55.7558, 37.6173],
             zoom: 10,

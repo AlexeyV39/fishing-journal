@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>">
     <title>Рыболовный журнал</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=38">
+    <link rel="stylesheet" href="styles.css?v=39">
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -128,13 +128,11 @@
                             </div>
                             <div class="weather-details-grid">
                                 <div class="wd-item"><span class="wd-icon">💨</span><span id="today-wind">-- м/с</span><span class="wd-label">Ветер</span></div>
-                                <div class="wd-item" style="display:none;"><span class="wd-icon">🧭</span><span id="today-wind-dir">--</span><span class="wd-label">Направление</span></div>
                                 <div class="wd-item"><span class="wd-icon">💧</span><span id="today-humidity">--%</span><span class="wd-label">Влажность</span></div>
                                 <div class="wd-item"><span class="wd-icon">📊</span><span id="today-pressure">-- мм</span><span class="wd-label">Давление</span></div>
                                 <div class="wd-item"><span class="wd-icon">🌡</span><span class="wd-temp-range"><span id="today-temp-min">--°</span>/<span id="today-temp-max">--°</span></span><span class="wd-label">Мин/Макс</span></div>
                                 <div class="wd-item"><span class="wd-icon">🐟</span><span id="today-water-temp">--°C</span><span class="wd-label">Темп. воды</span></div>
-                                <div class="wd-item"><span class="wd-icon">🧲</span><span id="today-magnetic">—</span><span class="wd-label">Магнитное поле</span></div>
-                                <div class="wd-item" style="grid-column:span 2;"><span class="wd-icon">🌅🌇</span><span><span id="sunrise-time">--:--</span> / <span id="sunset-time">--:--</span></span><span class="wd-label">Восход / Закат</span></div>
+                                <div class="wd-item"><span class="wd-icon">🌅</span><span><span id="sunrise-time">--:--</span> / <span id="sunset-time">--:--</span></span><span class="wd-label">Восход/Закат</span></div>
                             </div>
                         </div>
                         <p class="weather-location" id="weather-location" style="text-align:center;padding:8px;color:#64748b;">--</p>
@@ -636,7 +634,7 @@
 
     <input type="file" id="import-file-input" accept=".json" style="display:none">
 
-    <script src="app.js?v=38"></script>
+    <script src="app.js?v=39"></script>
     <script>
         // Динамическая высота шапки для safe area
         function updateHeaderHeight() {
@@ -652,7 +650,7 @@
         setTimeout(updateHeaderHeight, 100);
         setTimeout(updateHeaderHeight, 500);
 
-        const APP_VER = '38';
+        const APP_VER = '39';
         const prev = localStorage.getItem('app_ver');
         if (prev && prev !== APP_VER) {
             caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))).then(() => {
