@@ -1492,22 +1492,28 @@ function createMap() {
             depth: null
         };
 
-        // Загрузить сохранённые маркеры
+        // Загрузить сохранённые маркеры рыбалки
         mapMarkers.forEach(m => addPlacemark(m));
 
-        // Клик по карте для добавления точки
+        // Восстановить метку местоположения из хранилища
+        if (settings.myLocation) {
+            addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
+        }
+
+        // Клик по карте: если режим добавления точки — ставим точку рыбалки
         ymap.events.add('click', (e) => {
-            if (!placingMarker) return;
-            placingMarker = false;
-            $('#add-marker-btn').textContent = '📍 Добавить точку';
-            $('#add-marker-btn').style.background = '';
-            const coords = e.get('coords');
-            $('#marker-lat').value = coords[0];
-            $('#marker-lng').value = coords[1];
-            $('#marker-name').value = '';
-            $('#marker-fish').value = '';
-            $('#marker-desc').value = '';
-            $('#marker-modal').classList.add('active');
+            if (placingMarker) {
+                placingMarker = false;
+                $('#add-marker-btn').textContent = '📍 Добавить точку';
+                $('#add-marker-btn').style.background = '';
+                const coords = e.get('coords');
+                $('#marker-lat').value = coords[0];
+                $('#marker-lng').value = coords[1];
+                $('#marker-name').value = '';
+                $('#marker-fish').value = '';
+                $('#marker-desc').value = '';
+                $('#marker-modal').classList.add('active');
+            }
         });
     });
 }
@@ -1552,41 +1558,28 @@ function switchMapLayer(layerName) {
         controls: ['zoomControl']
     });
 
-    // Восстановить маркеры
+    // Восстановить маркеры рыбалки
     mapMarkers.forEach(m => addPlacemark(m));
 
     // Восстановить метку местоположения
-    if (savedLoc) {
-        const coords = savedLoc.geometry.getCoordinates();
-        const MyLocLayout = ymaps.templateLayoutFactory.createClass(
-            '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
-        );
-        window._myLocationMark = new ymaps.Placemark(coords, {
-            balloonContent: savedLoc.properties.get('balloonContent')
-        }, {
-            iconLayout: 'default#imageWithContent',
-            iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
-            iconImageSize: [32, 32],
-            iconImageOffset: [-16, -16],
-            iconContentOffset: [0, 0],
-            iconContentLayout: MyLocLayout
-        });
-        ymap.geoObjects.add(window._myLocationMark);
+    if (settings.myLocation) {
+        addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
     }
 
-    // Клик по карте для добавления точки
+    // Клик по карте: если режим добавления точки — ставим точку рыбалки
     ymap.events.add('click', (e) => {
-        if (!placingMarker) return;
-        placingMarker = false;
-        $('#add-marker-btn').textContent = '📍 Добавить точку';
-        $('#add-marker-btn').style.background = '';
-        const coords = e.get('coords');
-        $('#marker-lat').value = coords[0];
-        $('#marker-lng').value = coords[1];
-        $('#marker-name').value = '';
-        $('#marker-fish').value = '';
-        $('#marker-desc').value = '';
-        $('#marker-modal').classList.add('active');
+        if (placingMarker) {
+            placingMarker = false;
+            $('#add-marker-btn').textContent = '📍 Добавить точку';
+            $('#add-marker-btn').style.background = '';
+            const coords = e.get('coords');
+            $('#marker-lat').value = coords[0];
+            $('#marker-lng').value = coords[1];
+            $('#marker-name').value = '';
+            $('#marker-fish').value = '';
+            $('#marker-desc').value = '';
+            $('#marker-modal').classList.add('active');
+        }
     });
 
     // Добавить слой глубин если выбран
@@ -1771,23 +1764,29 @@ function mapLocateMe() {
 
 function showLocationOnMap(lat, lng, accuracy, cityName) {
     ymap.setCenter([lat, lng], 14);
+    addMyLocationMark(lat, lng);
 
+    // Сохранить
+    settings.lat = lat;
+    settings.lng = lng;
+    settings.myLocation = { lat, lng };
+    if (cityName) settings.city = cityName;
+    saveData();
+    if (cityName) $('#default-city-input').value = cityName;
+
+    showToast(`📍 ${cityName || lat.toFixed(4) + ', ' + lng.toFixed(4)} — перетащите маркер для уточнения`);
+}
+
+function addMyLocationMark(lat, lng) {
     // Убрать старую метку
     if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
-    if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
 
-    // Круг точности
-    window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy || 5000], {}, {
-        fillColor: '#22c55e', fillOpacity: 0.1, strokeColor: '#22c55e', strokeWidth: 1
-    });
-    ymap.geoObjects.add(window._myLocationCircle);
-
-    // Перетаскиваемая метка
     const MyLocLayout = ymaps.templateLayoutFactory.createClass(
         '<div style="background:#22c55e;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;cursor:grab;">📍</div>'
     );
+
     window._myLocationMark = new ymaps.Placemark([lat, lng], {
-        balloonContent: `<b>Ваше местоположение</b><br>${cityName ? cityName + '<br>' : ''}Перетащите маркер для уточнения`
+        balloonContent: `<b>Вы здесь</b><br>Перетащите маркер для уточнения`
     }, {
         iconLayout: 'default#imageWithContent',
         iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
@@ -1795,50 +1794,27 @@ function showLocationOnMap(lat, lng, accuracy, cityName) {
         draggable: true
     });
 
-    // При перетаскивании — обновляем координаты и погоду
     window._myLocationMark.events.add('dragend', function() {
         const coords = window._myLocationMark.geometry.getCoordinates();
-        const newLat = coords[0];
-        const newLng = coords[1];
-
-        // Сохранить координаты
-        settings.lat = newLat;
-        settings.lng = newLng;
+        settings.lat = coords[0];
+        settings.lng = coords[1];
+        settings.myLocation = { lat: coords[0], lng: coords[1] };
         saveData();
 
-        // Определить город по новым координатам
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${newLat}&lon=${newLng}&format=json&accept-language=ru&zoom=14`)
+        // Определить город
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords[0]}&lon=${coords[1]}&format=json&accept-language=ru&zoom=14`)
             .then(r => r.json())
             .then(data => {
                 const a = data.address;
-                const city = a?.city || a?.town || a?.village || a?.hamlet || a?.county || '';
-                if (city) {
-                    settings.city = city;
-                    saveData();
-                    $('#default-city-input').value = city;
-                }
-                // Обновить погоду
+                const city = a?.city || a?.town || a?.village || a?.hamlet || '';
+                if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
                 loadWeather();
-                showToast(`📍 Место обновлено: ${city || newLat.toFixed(4) + ', ' + newLng.toFixed(4)}`);
+                showToast(`📍 Место: ${city || coords[0].toFixed(4) + ', ' + coords[1].toFixed(4)}`);
             })
-            .catch(() => {
-                loadWeather();
-                showToast(`📍 Координаты обновлены: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`);
-            });
+            .catch(() => { loadWeather(); });
     });
 
     ymap.geoObjects.add(window._myLocationMark);
-
-    // Сохранить город
-    if (cityName) {
-        settings.city = cityName;
-        settings.lat = lat;
-        settings.lng = lng;
-        saveData();
-        $('#default-city-input').value = cityName;
-    }
-
-    showToast(`📍 ${cityName || lat.toFixed(4) + ', ' + lng.toFixed(4)} — перетащите маркер для уточнения`);
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)
