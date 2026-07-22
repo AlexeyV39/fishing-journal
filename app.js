@@ -1429,17 +1429,17 @@ async function showDayTips(date) {
         if (geoData.results && geoData.results.length > 0) {
             const { latitude: lat, longitude: lng } = geoData.results[0];
             const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
-            const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,wind_speed_10m_max&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`);
+            const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,wind_speed_10m_max&timezone=auto&start_date=${dateStr}&end_date=${dateStr}&wind_speed_unit=ms`);
             const wData = await wRes.json();
             if (wData.daily) {
                 const d = wData.daily;
                 weatherHtml = '<div style="margin-top:10px;padding:10px 12px;background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd;">'
-                    + '<div style="font-weight:600;margin-bottom:6px;">🌤 Погода:</div>'
+                    + '<div style="font-weight:600;margin-bottom:6px;">Погода:</div>'
                     + '<div style="font-size:.85rem;display:grid;grid-template-columns:1fr 1fr;gap:4px;">'
                     + '<span>' + wmoToEmoji(d.weather_code[0]) + ' ' + wmoToText(d.weather_code[0]) + '</span>'
-                    + '<span>🌡 ' + Math.round(d.temperature_2m_min[0]) + '°...+' + Math.round(d.temperature_2m_max[0]) + '°</span>'
-                    + '<span>💨 ' + Math.round(d.wind_speed_10m_max[0]) + ' км/ч</span>'
-                    + '<span>💧 ' + (d.precipitation_sum[0] || 0) + ' мм</span>'
+                    + '<span>Темп: ' + Math.round(d.temperature_2m_min[0]) + '...+' + Math.round(d.temperature_2m_max[0]) + ' C</span>'
+                    + '<span>Ветер: ' + Math.round(d.wind_speed_10m_max[0]) + ' м/с</span>'
+                    + '<span>Дождь: ' + (d.precipitation_sum[0] || 0) + ' мм</span>'
                     + '</div></div>';
             }
         }
