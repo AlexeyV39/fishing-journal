@@ -1419,6 +1419,32 @@ form { padding: 16px; }
 .loc-panel-coords { padding: 0 14px 10px; font-size: .75rem; color: var(--text3); font-family: monospace; }
 .loc-panel-actions { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
 
+/* Icon picker */
+.icon-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.icon-pick {
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+}
+.icon-pick.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 2px var(--primary-glow);
+}
+.icon-pick:active { transform: scale(.9); }
+
 /* Map context menu (long press) */
 .map-context-menu {
     position: absolute;

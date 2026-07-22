@@ -1669,7 +1669,8 @@ function handleMarkerSubmit(e) {
         lng: parseFloat($('#marker-lng').value),
         name: $('#marker-name').value.trim(),
         desc: $('#marker-desc').value.trim(),
-        fish: $('#marker-fish').value.trim() || null
+        fish: $('#marker-fish').value.trim() || null,
+        icon: $('#marker-icon-select').value
     };
     mapMarkers.push(marker);
     addPlacemark(marker);
@@ -1681,8 +1682,9 @@ function handleMarkerSubmit(e) {
 function addPlacemark(m) {
     if (!ymap) return;
 
+    const icon = m.icon || settings.defaultMarkerIcon || '🐟';
     const MyIconLayout = ymaps.templateLayoutFactory.createClass(
-        '<div style="background:#2563eb;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">🐟</div>'
+        '<div style="background:#2563eb;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">' + icon + '</div>'
     );
 
     let fishInfo = '';
@@ -1693,7 +1695,7 @@ function addPlacemark(m) {
     const naviUrl = 'yandexnavi://build_route_on_map?lat_to=' + m.lat + '&lon_to=' + m.lng;
 
     const placemark = new ymaps.Placemark([m.lat, m.lng], {
-        balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">🐟 ' + m.name + '</div>'
+        balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">' + icon + ' ' + m.name + '</div>'
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
             + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
@@ -1797,18 +1799,18 @@ function addMyLocationMark(lat, lng) {
     if (window._myLocationMark) ymap.geoObjects.remove(window._myLocationMark);
     if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
 
-    // Круг точности (не блокирует клики — z-index ниже)
-    window._myLocationCircle = new ymaps.Circle([[lat, lng], 200], {}, {
+    // Круг точности 50м
+    window._myLocationCircle = new ymaps.Circle([[lat, lng], 50], {}, {
         fillColor: '#4285F4', fillOpacity: 0.12, strokeColor: '#4285F4', strokeWidth: 1,
         cursor: 'pointer', zIndex: 5
     });
     ymap.geoObjects.add(window._myLocationCircle);
 
-    // Синяя пульсирующая точка
+    // Синяя пульсирующая точка (20px)
     const MyLocLayout = ymaps.templateLayoutFactory.createClass(
-        '<div style="position:relative;width:32px;height:32px;">' +
-            '<div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(66,133,244,.18);animation:pulse 2s ease-out infinite;"></div>' +
-            '<div style="position:absolute;inset:0;border-radius:50%;background:#4285F4;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>' +
+        '<div style="position:relative;width:20px;height:20px;">' +
+            '<div style="position:absolute;inset:-5px;border-radius:50%;background:rgba(66,133,244,.18);animation:pulse 2s ease-out infinite;"></div>' +
+            '<div style="position:absolute;inset:0;border-radius:50%;background:#4285F4;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>' +
         '</div>',
         { build: function() { MyLocLayout.superclass.build.call(this); } }
     );
@@ -1817,8 +1819,8 @@ function addMyLocationMark(lat, lng) {
         balloonContent: 'Вы здесь'
     }, {
         iconLayout: 'default#imageWithContent',
-        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#4285F4" stroke="white" stroke-width="3"/></svg>'),
-        iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><circle cx="10" cy="10" r="8" fill="#4285F4" stroke="white" stroke-width="2"/></svg>'),
+        iconImageSize: [20, 20], iconImageOffset: [-10, -10], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
         draggable: true, zIndex: 10
     });
 
@@ -1905,6 +1907,12 @@ function closeContextMenu() {
     _ctxCoords = null;
 }
 
+function setIconPicker(icon) {
+    settings.defaultMarkerIcon = icon;
+    saveData();
+    $$('.icon-pick').forEach(b => b.classList.toggle('active', b.dataset.icon === icon));
+}
+
 function ctxAddFishing() {
     if (!_ctxCoords) return;
     const c = _ctxCoords;
@@ -1915,6 +1923,7 @@ function ctxAddFishing() {
         $('#marker-name').value = '';
         $('#marker-fish').value = '';
         $('#marker-desc').value = '';
+        $('#marker-icon-select').value = settings.defaultMarkerIcon || '🐟';
         $('#marker-modal').classList.add('active');
     }, 100);
 }
