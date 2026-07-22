@@ -839,7 +839,7 @@ async function loadWeather() {
         settings.lng = lon;
 
         // Погода
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2`);
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=2&wind_speed_unit=ms`);
         if (!wRes.ok) throw new Error('Ошибка API');
         const data = await wRes.json();
         const cur = data.current;
@@ -925,7 +925,7 @@ async function openWeekForecast() {
         const lat = settings.lat || 55.7558;
         const lon = settings.lng || 37.6173;
 
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,relative_humidity_2m_mean&timezone=auto&forecast_days=7&wind_speed_unit=ms`);
         if (!res.ok) throw new Error('Ошибка API');
         const data = await res.json();
         const d = data.daily;
@@ -1439,7 +1439,8 @@ function createMap() {
         ymap = new ymaps.Map('map-container', {
             center: [55.7558, 37.6173],
             zoom: 10,
-            controls: ['zoomControl']
+            controls: ['zoomControl'],
+            suppressMapOpenBlock: true
         });
 
         // Слои карты
@@ -2311,7 +2312,7 @@ async function loadHourlyForecast() {
         return;
     }
     try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${settings.lat}&longitude=${settings.lng}&hourly=temperature_2m,weather_code,wind_speed_10m&timezone=auto&forecast_days=1`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${settings.lat}&longitude=${settings.lng}&hourly=temperature_2m,weather_code,wind_speed_10m&timezone=auto&forecast_days=1&wind_speed_unit=ms`);
         if (!res.ok) throw new Error('API error');
         const data = await res.json();
         const h = data.hourly;
