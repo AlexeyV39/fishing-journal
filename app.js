@@ -10,6 +10,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// Сохранять состояние авторизации между сессиями
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 let currentUser = null;
 let unsubscribeCatches = null;
 let unsubscribeMarkers = null;
@@ -1478,9 +1481,15 @@ function initMap() {
 
 function createMap() {
     ymaps.ready(() => {
+        // Центрировать на сохранённой локации
+        const center = settings.myLocation
+            ? [settings.myLocation.lat, settings.myLocation.lng]
+            : (settings.lat ? [settings.lat, settings.lng] : [55.7558, 37.6173]);
+        const zoom = settings.myLocation ? 14 : 10;
+
         ymap = new ymaps.Map('map-container', {
-            center: [55.7558, 37.6173],
-            zoom: 10,
+            center: center,
+            zoom: zoom,
             controls: ['zoomControl']
         });
 
@@ -1499,11 +1508,15 @@ function createMap() {
             if (settings.myLocation) {
                 addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
             }
-            // Если есть маркеры — центрировать карту на них
-            if (mapMarkers.length > 0) {
-                const bounds = mapMarkers.map(m => [m.lat, m.lng]);
-                if (settings.myLocation) bounds.push([settings.myLocation.lat, settings.myLocation.lng]);
-                ymap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+            // Центрировать карту на всех маркерах
+            if (mapMarkers.length > 0 || settings.myLocation) {
+                const allPoints = mapMarkers.map(m => [m.lat, m.lng]);
+                if (settings.myLocation) allPoints.push([settings.myLocation.lat, settings.myLocation.lng]);
+                if (allPoints.length === 1) {
+                    ymap.setCenter(allPoints[0], 14);
+                } else if (allPoints.length > 1) {
+                    ymap.setBounds(allPoints, { checkZoomRange: true, zoomMargin: 50 });
+                }
             }
         }, 500);
 
@@ -1589,6 +1602,12 @@ function switchMapLayer(layerName) {
         type: typeMap[layerName],
         controls: ['zoomControl']
     });
+
+    // Восстановить маркеры
+    mapMarkers.forEach(m => addPlacemark(m));
+    if (settings.myLocation) {
+        addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
+    }
 
     // Восстановить маркеры рыбалки
     mapMarkers.forEach(m => addPlacemark(m));
