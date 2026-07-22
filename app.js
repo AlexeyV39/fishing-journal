@@ -1468,7 +1468,7 @@ function initMap() {
     if (typeof ymaps === 'undefined') {
         // Загрузить API Яндекс Карт
         const script = document.createElement('script');
-        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=YOUR_API_KEY';
+        script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=87544616-89b3-4bd6-89e3-2dec54f72471';
         script.onload = () => createMap();
         document.head.appendChild(script);
     } else {
