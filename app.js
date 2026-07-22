@@ -1777,32 +1777,68 @@ function showLocationOnMap(lat, lng, accuracy, cityName) {
     if (window._myLocationCircle) ymap.geoObjects.remove(window._myLocationCircle);
 
     // Круг точности
-    window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy], {}, {
+    window._myLocationCircle = new ymaps.Circle([[lat, lng], accuracy || 5000], {}, {
         fillColor: '#22c55e', fillOpacity: 0.1, strokeColor: '#22c55e', strokeWidth: 1
     });
     ymap.geoObjects.add(window._myLocationCircle);
 
-    // Метка
+    // Перетаскиваемая метка
     const MyLocLayout = ymaps.templateLayoutFactory.createClass(
-        '<div style="background:#22c55e;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;">📍</div>'
+        '<div style="background:#22c55e;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);border:3px solid #fff;cursor:grab;">📍</div>'
     );
     window._myLocationMark = new ymaps.Placemark([lat, lng], {
-        balloonContent: `<b>Вы здесь</b><br>${cityName ? cityName + '<br>' : ''}${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        balloonContent: `<b>Ваше местоположение</b><br>${cityName ? cityName + '<br>' : ''}Перетащите маркер для уточнения`
     }, {
         iconLayout: 'default#imageWithContent',
-        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><circle cx="16" cy="16" r="14" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
-        iconImageSize: [32, 32], iconImageOffset: [-16, -16], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout
+        iconImageHref: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><circle cx="18" cy="18" r="16" fill="#22c55e" stroke="white" stroke-width="3"/></svg>'),
+        iconImageSize: [36, 36], iconImageOffset: [-18, -18], iconContentOffset: [0, 0], iconContentLayout: MyLocLayout,
+        draggable: true
     });
+
+    // При перетаскивании — обновляем координаты и погоду
+    window._myLocationMark.events.add('dragend', function() {
+        const coords = window._myLocationMark.geometry.getCoordinates();
+        const newLat = coords[0];
+        const newLng = coords[1];
+
+        // Сохранить координаты
+        settings.lat = newLat;
+        settings.lng = newLng;
+        saveData();
+
+        // Определить город по новым координатам
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${newLat}&lon=${newLng}&format=json&accept-language=ru&zoom=14`)
+            .then(r => r.json())
+            .then(data => {
+                const a = data.address;
+                const city = a?.city || a?.town || a?.village || a?.hamlet || a?.county || '';
+                if (city) {
+                    settings.city = city;
+                    saveData();
+                    $('#default-city-input').value = city;
+                }
+                // Обновить погоду
+                loadWeather();
+                showToast(`📍 Место обновлено: ${city || newLat.toFixed(4) + ', ' + newLng.toFixed(4)}`);
+            })
+            .catch(() => {
+                loadWeather();
+                showToast(`📍 Координаты обновлены: ${newLat.toFixed(4)}, ${newLng.toFixed(4)}`);
+            });
+    });
+
     ymap.geoObjects.add(window._myLocationMark);
 
-    // Сохранить город в настройки для погоды
+    // Сохранить город
     if (cityName) {
         settings.city = cityName;
+        settings.lat = lat;
+        settings.lng = lng;
         saveData();
         $('#default-city-input').value = cityName;
     }
 
-    showToast(`📍 ${cityName || lat.toFixed(4) + ', ' + lng.toFixed(4)}`);
+    showToast(`📍 ${cityName || lat.toFixed(4) + ', ' + lng.toFixed(4)} — перетащите маркер для уточнения`);
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)
