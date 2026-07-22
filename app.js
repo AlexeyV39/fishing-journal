@@ -1516,16 +1516,9 @@ function createMap() {
             // Восстановить метку местоположения из хранилища
             if (settings.myLocation) {
                 addMyLocationMark(settings.myLocation.lat, settings.myLocation.lng);
-            }
-            // Центрировать карту на всех маркерах
-            if (mapMarkers.length > 0 || settings.myLocation) {
-                const allPoints = mapMarkers.map(m => [m.lat, m.lng]);
-                if (settings.myLocation) allPoints.push([settings.myLocation.lat, settings.myLocation.lng]);
-                if (allPoints.length === 1) {
-                    ymap.setCenter(allPoints[0], 14);
-                } else if (allPoints.length > 1) {
-                    ymap.setBounds(allPoints, { checkZoomRange: true, zoomMargin: 50 });
-                }
+                ymap.setCenter([settings.myLocation.lat, settings.myLocation.lng], 14);
+            } else if (mapMarkers.length > 0) {
+                ymap.setCenter([mapMarkers[0].lat, mapMarkers[0].lng], 13);
             }
         }, 500);
 
