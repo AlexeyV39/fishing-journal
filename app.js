@@ -1721,7 +1721,7 @@ function mapLocateMe() {
     btn.textContent = '⏳ Определение...';
 
     // Сначала пробуем IP-геолокацию (без разрешений)
-    fetch('https://ipapi.co/json/')
+    fetch('https://ip-api.com/json/?fields=lat,lon,city&lang=ru')
         .then(r => r.json())
         .then(data => {
             if (data.latitude && data.longitude) {
