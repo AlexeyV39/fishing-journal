@@ -1754,3 +1754,86 @@ form { padding: 16px; }
 
     .search-dropdown { background: var(--card); }
 }
+
+/* =====================================================
+   DARK THEME — автоматически по настройкам ОС
+   ===================================================== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1a1a2e;
+        --card: #16213e;
+        --card-border: rgba(255,255,255,.08);
+        --text: #e8e8e8;
+        --text2: #a0a0b0;
+        --text3: #707080;
+        --border: #2a2a3e;
+        --border-strong: #3a3a4e;
+        --shadow-xs: 0 1px 2px rgba(0,0,0,.3);
+        --shadow: 0 2px 8px rgba(0,0,0,.4);
+        --shadow-md: 0 4px 16px rgba(0,0,0,.5);
+        --shadow-lg: 0 8px 32px rgba(0,0,0,.6);
+        --success-light: #1b3a1b;
+        --warning-light: #3a3000;
+        --danger-light: #3a1010;
+        --info-light: #0a1a3a;
+        --wood-bg: #1e1e30;
+    }
+
+    body { background: #111122; }
+
+    .card { background: var(--card); border: 1px solid var(--card-border); }
+    .drawer { background: var(--card); }
+    .drawer-header { background: linear-gradient(135deg, #1a3a1a, #2d5a2d) !important; }
+    .modal-content { background: var(--card); }
+
+    .weather-day-clickable:active { background: rgba(255,255,255,.05); }
+    .weather-details-grid .wd-item { background: rgba(255,255,255,.05); border-color: var(--border); }
+
+    .forecast-bar { background: rgba(255,255,255,.1); }
+    .forecast-fill.excellent { background: #43A047; }
+    .forecast-fill.good { background: #7CB342; }
+    .forecast-fill.medium { background: #F9A825; }
+    .forecast-fill.bad { background: #C62828; }
+
+    .moon-today-card { background: var(--card); }
+    .moon-phase-card { background: var(--card); border-color: var(--border); }
+    .moon-phase-card.current { background: rgba(46,125,50,.15); border-color: var(--primary); }
+
+    .catch-card { background: var(--card); border-color: var(--border); }
+    .fish-card { background: var(--card); border-color: var(--border); }
+
+    .spawning-card { background: var(--card); border-color: var(--border); }
+    .spawning-card.spawning-active { background: rgba(198,40,40,.1); }
+
+    .cal-day { background: var(--card); border-color: var(--border); }
+    .cal-day.today { background: var(--primary); color: #fff; }
+    .cal-day.excellent { background: rgba(67,160,71,.2); }
+    .cal-day.good { background: rgba(124,179,66,.15); }
+    .cal-day.medium { background: rgba(249,168,37,.15); }
+    .cal-day.bad { background: rgba(198,40,40,.15); }
+
+    .week-day-card { background: var(--card); border-color: var(--border); }
+    .week-day-card.today { background: rgba(46,125,50,.1); border-color: var(--primary); }
+
+    .gallery-item { border-color: var(--border); }
+    .photo-gallery .gallery-item-info { background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+
+    .hourly-item { background: rgba(255,255,255,.05); }
+    .hourly-item.current { background: rgba(46,125,50,.2); }
+
+    .point-card { background: var(--card); border-color: var(--border); }
+
+    .stat-item { background: var(--card); }
+
+    input, textarea, select, .setting-input, .search-input, .sort-select {
+        background: var(--card);
+        color: var(--text);
+        border-color: var(--border);
+    }
+
+    .auth-card { background: var(--card); }
+    .auth-screen { background: linear-gradient(135deg, #0d1b0d, #1a3a1a) !important; }
+
+    .catch-weather-preview { background: rgba(255,255,255,.05); }
+    .catch-weather-tag { background: rgba(255,255,255,.08); border-color: var(--border); color: var(--text2); }
+}

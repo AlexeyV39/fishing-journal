@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виджет рыбалки</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', sans-serif;
+            background: linear-gradient(135deg, #1a3a1a, #0d2818);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .widget {
+            background: rgba(255,255,255,.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px;
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,.15);
+        }
+        .widget-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .widget-header h1 { font-size: 1.2rem; font-weight: 600; }
+        .widget-header .city { font-size: .8rem; opacity: .7; margin-top: 4px; }
+        .weather-main {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .weather-main .icon { font-size: 3rem; }
+        .weather-main .temp { font-size: 2.5rem; font-weight: 700; }
+        .weather-main .desc { font-size: .9rem; opacity: .8; }
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .detail-item {
+            text-align: center;
+            padding: 8px;
+            background: rgba(255,255,255,.08);
+            border-radius: 12px;
+        }
+        .detail-item .label { font-size: .65rem; opacity: .6; }
+        .detail-item .value { font-size: .85rem; font-weight: 600; }
+        .forecast {
+            border-top: 1px solid rgba(255,255,255,.1);
+            padding-top: 16px;
+        }
+        .forecast h2 { font-size: .9rem; margin-bottom: 12px; opacity: .8; }
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+        .forecast-item:last-child { border-bottom: none; }
+        .forecast-time { font-size: .8rem; opacity: .7; width: 50px; }
+        .forecast-rating { font-size: .8rem; font-weight: 600; }
+        .forecast-bar-bg {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,.1);
+            border-radius: 3px;
+            margin: 0 10px;
+        }
+        .forecast-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .5s;
+        }
+        .forecast-bar.excellent { background: #43A047; }
+        .forecast-bar.good { background: #7CB342; }
+        .forecast-bar.medium { background: #F9A825; }
+        .forecast-bar.bad { background: #C62828; }
+        .sun-times {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,.1);
+        }
+        .sun-item { text-align: center; font-size: .8rem; }
+        .sun-item .icon { font-size: 1.2rem; }
+        .sun-item .time { font-weight: 600; margin-top: 2px; }
+        .update-time { text-align: center; font-size: .65rem; opacity: .5; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="widget" id="widget">
+        <div class="widget-header">
+            <h1>🎣 Рыбалка</h1>
+            <div class="city" id="city">Загрузка...</div>
+        </div>
+        <div class="weather-main">
+            <div class="icon" id="icon">🌤</div>
+            <div class="temp" id="temp">--°C</div>
+            <div class="desc" id="desc">--</div>
+        </div>
+        <div class="weather-details">
+            <div class="detail-item"><div class="label">Ветер</div><div class="value" id="wind">--</div></div>
+            <div class="detail-item"><div class="label">Давление</div><div class="value" id="pressure">--</div></div>
+            <div class="detail-item"><div class="label">Влажность</div><div class="value" id="humidity">--</div></div>
+        </div>
+        <div class="forecast">
+            <h2>Прогноз клёва</h2>
+            <div id="forecast-list"></div>
+        </div>
+        <div class="sun-times">
+            <div class="sun-item"><div class="icon">🌅</div><div class="time" id="sunrise">--:--</div><div class="label">Восход</div></div>
+            <div class="sun-item"><div class="icon">🌇</div><div class="time" id="sunset">--:--</div><div class="label">Закат</div></div>
+        </div>
+        <div class="update-time" id="update-time"></div>
+    </div>
+    <script>
+        const WMO = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',71:'❄',73:'❄',75:'❄',80:'🌧',81:'🌧',82:'🌧',95:'⛈',96:'⛈',99:'⛈'};
+        const WMO_TEXT = {0:'Ясно',1:'Преимущественно ясно',2:'Переменная облачность',3:'Пасмурно',45:'Туман',48:'Изморозь',51:'Лёгкая морось',53:'Морось',55:'Сильная морось',61:'Небольшой дождь',63:'Дождь',65:'Сильный дождь',71:'Небольшой снег',73:'Снег',75:'Сильный снег',80:'Небольшой ливень',81:'Ливень',82:'Сильный ливень',95:'Гроза',96:'Гроза с градом',99:'Сильная гроза'};
+
+        async function load() {
+            try {
+                const geoRes = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=Москва&count=1&language=ru&format=json');
+                const geoData = await geoRes.json();
+                if (!geoData.results?.length) return;
+                const {latitude:lat, longitude:lon} = geoData.results[0];
+
+                const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,apparent_temperature&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto&forecast_days=2&wind_speed_unit=ms`);
+                const data = await wRes.json();
+                const cur = data.current;
+                const daily = data.daily;
+
+                document.getElementById('icon').textContent = WMO[cur.weather_code] || '🌤';
+                document.getElementById('temp').textContent = Math.round(cur.temperature_2m) + '°C';
+                document.getElementById('desc').textContent = WMO_TEXT[cur.weather_code] || '--';
+                document.getElementById('wind').textContent = cur.wind_speed_10m + ' м/с';
+                document.getElementById('pressure').textContent = Math.round(cur.surface_pressure * 0.75) + ' мм';
+                document.getElementById('humidity').textContent = cur.relative_humidity_2m + '%';
+                document.getElementById('city').textContent = '📍 Москва';
+
+                // Sunrise/sunset
+                const dayOfYear = Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(now.getFullYear(), 0, 0)) / 86400000) + 1;
+                const gamma = (2 * Math.PI / 365) * (dayOfYear - 1);
+                const decl = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma) - 0.006758 * Math.cos(2*gamma) + 0.000907 * Math.sin(2*gamma);
+                const latRad = lat * Math.PI / 180;
+                const cosHA = (Math.cos(90.833 * Math.PI / 180) - Math.sin(latRad) * Math.sin(decl)) / (Math.cos(latRad) * Math.cos(decl));
+                if (cosHA <= 1 && cosHA >= -1) {
+                    const HA = Math.acos(cosHA) * 180 / Math.PI;
+                    const B = (2 * Math.PI / 365) * (dayOfYear - 81);
+                    const EoT = 9.87 * Math.sin(2*B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+                    const riseMin = 720 - 4 * (lon + HA) - EoT;
+                    const setMin = 720 - 4 * (lon - HA) - EoT;
+                    const tz = Math.round(lon / 15);
+                    const fmt = m => { const h = ((m/60)%24+24)%24; return String(Math.floor(h)).padStart(2,'0') + ':' + String(Math.round((h-Math.floor(h))*60)%60).padStart(2,'0'); };
+                    document.getElementById('sunrise').textContent = fmt(riseMin/60 + tz);
+                    document.getElementById('sunset').textContent = fmt(setMin/60 + tz);
+                }
+
+                // Forecast
+                const now = new Date();
+                const hour = now.getHours();
+                const slots = [{id:'morning',h:7,time:'Утро'},{id:'day',h:12,time:'День'},{id:'evening',h:19,time:'Вечер'},{id:'night',h:1,time:'Ночь'}];
+                const forecastHtml = slots.map(s => {
+                    const moon = getMoonPhase(now);
+                    const mf = moon < 0.1 || moon > 0.9 ? 0.7 : (moon >= 0.45 && moon <= 0.55 ? 1.0 : 0.6);
+                    const sf = [0.2,0.2,0.3,0.5,0.7,0.9,1.0,0.95,0.8,0.6,0.3,0.2][now.getMonth()];
+                    const tf = s.h >= 5 && s.h < 9 ? 0.9 : s.h >= 9 && s.h < 14 ? 0.5 : s.h >= 14 && s.h < 18 ? 0.6 : s.h >= 18 && s.h < 22 ? 0.85 : 0.3;
+                    const pct = Math.round(Math.min(1, mf * sf * tf) * 100);
+                    let cls = pct >= 75 ? 'excellent' : pct >= 55 ? 'good' : pct >= 35 ? 'medium' : 'bad';
+                    let text = pct >= 75 ? 'Отлично' : pct >= 55 ? 'Хорошо' : pct >= 35 ? 'Средне' : 'Слабо';
+                    return `<div class="forecast-item">
+                        <span class="forecast-time">${s.time}</span>
+                        <span class="forecast-rating" style="color:${cls==='excellent'?'#43A047':cls==='good'?'#7CB342':cls==='medium'?'#F9A825':'#C62828'}">${text}</span>
+                        <div class="forecast-bar-bg"><div class="forecast-bar ${cls}" style="width:${pct}%"></div></div>
+                    </div>`;
+                }).join('');
+                document.getElementById('forecast-list').innerHTML = forecastHtml;
+
+                document.getElementById('update-time').textContent = 'Обновлено: ' + now.toLocaleTimeString('ru-RU');
+            } catch(e) {
+                console.error('Widget error:', e);
+            }
+        }
+
+        function getMoonPhase(date) {
+            const y=date.getFullYear(), m=date.getMonth()+1, d=date.getDate();
+            let c=0,e=0; if(m<3){c=y-1;e=m+12;}else{c=y;e=m;}
+            const a=Math.floor(c/100),b=Math.floor(a/4),f=Math.floor(8*(a+2)/25),g=Math.floor((c-b+f+30)/4);
+            const jd=Math.floor(365.25*(c+4716))+Math.floor(30.6001*(e+1))+d+g-1524.5;
+            return ((jd-2451549.5)/29.53059)%1;
+        }
+
+        load();
+        setInterval(load, 600000); // Обновление каждые 10 минут
+    </script>
+</body>
+</html>

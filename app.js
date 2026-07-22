@@ -2414,4 +2414,67 @@ updateAll = function() {
     updateYearComparison();
     updateSeasonalTips();
     updateFishingTimer();
+    analyzeWeatherCatch();
 };
+
+// ─── Анализ погоды и клёва ───
+function analyzeWeatherCatch() {
+    const el = $('#weather-analysis');
+    if (!el) return;
+    const withWeather = catches.filter(c => c.weather && c.weather.temp !== null && c.hasCatch !== false);
+    if (withWeather.length < 3) {
+        el.innerHTML = '<p class="empty-state">Нужно минимум 3 улова с данными о погоде для анализа</p>';
+        return;
+    }
+
+    // Группируем по температуре
+    const tempBuckets = { 'холодно (<10°)': [], 'комфорт (10-20°)': [], 'тепло (20-30°)': [], 'жарко (>30°)' };
+    withWeather.forEach(c => {
+        const t = c.weather.temp;
+        if (t < 10) tempBuckets['холодно (<10°)'].push(c);
+        else if (t < 20) tempBuckets['комфорт (10-20°)'].push(c);
+        else if (t < 30) tempBuckets['тепло (20-30°)'].push(c);
+        else tempBuckets['жарко (>30°)'].push(c);
+    });
+
+    // Группируем по давлению
+    const pressBuckets = { 'низкое (<740)': [], 'норма (740-760)': [], 'высокое (>760)' };
+    withWeather.forEach(c => {
+        const p = c.weather.pressure;
+        if (p < 740) pressBuckets['низкое (<740)'].push(c);
+        else if (p <= 760) pressBuckets['норма (740-760)'].push(c);
+        else pressBuckets['высокое (>760)'].push(c);
+    });
+
+    // Группируем по ветру
+    const windBuckets = { 'тихо (<3)': [], 'умеренный (3-7)': [], 'сильный (>7)' };
+    withWeather.forEach(c => {
+        const w = c.weather.wind;
+        if (w < 3) windBuckets['тихо (<3)'].push(c);
+        else if (w <= 7) windBuckets['умеренный (3-7)'].push(c);
+        else windBuckets['сильный (>7)'].push(c);
+    });
+
+    function renderAnalysis(title, buckets) {
+        const maxCount = Math.max(...Object.values(buckets).map(v => v.length));
+        if (maxCount === 0) return '';
+        return `<div style="margin-bottom:12px;"><b>${title}</b></div>` +
+            Object.entries(buckets).map(([label, items]) => {
+                const pct = Math.round((items.length / withWeather.length) * 100);
+                const barWidth = maxCount > 0 ? (items.length / maxCount * 100) : 0;
+                return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.85rem;">
+                    <span style="width:120px;flex-shrink:0;">${label}</span>
+                    <div style="flex:1;height:18px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                        <div style="height:100%;width:${barWidth}%;background:var(--primary);border-radius:4px;display:flex;align-items:center;padding-left:6px;">
+                            <span style="color:#fff;font-size:.75rem;font-weight:600;">${items.length} (${pct}%)</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+    }
+
+    el.innerHTML = renderAnalysis('🌡 По температуре', tempBuckets) +
+                   renderAnalysis('📊 По давлению', pressBuckets) +
+                   renderAnalysis('💨 По ветру', windBuckets) +
+                   `<p style="margin-top:12px;font-size:.8rem;color:var(--text3);">Анализ ${withWeather.length} уловов с данными о погоде</p>`;
+}
