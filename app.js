@@ -1223,10 +1223,10 @@ function calcMoonPhase() {
         const moonAge = Math.round(phase * 29.53);
         ageEl.textContent = moonAge + ' дн.';
 
-        // Восход/закат луны (приблизительный расчёт)
-        const riseSet = calcMoonRiseSet(now, settings.lat || 55.75, settings.lng || 37.62);
-        riseEl.textContent = riseSet.rise;
-        setEl.textContent = riseSet.set;
+        // Восход/закат солнца (единый алгоритм)
+        const sunTimes = calcSunRiseSet(now, settings.lat || 55.75, settings.lng || 37.62);
+        riseEl.textContent = sunTimes.rise;
+        setEl.textContent = sunTimes.set;
     }
 }
 
