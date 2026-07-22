@@ -1907,44 +1907,53 @@ function closeContextMenu() {
 
 function ctxAddFishing() {
     if (!_ctxCoords) return;
+    const c = _ctxCoords;
     closeContextMenu();
-    $('#marker-lat').value = _ctxCoords[0];
-    $('#marker-lng').value = _ctxCoords[1];
-    $('#marker-name').value = '';
-    $('#marker-fish').value = '';
-    $('#marker-desc').value = '';
-    $('#marker-modal').classList.add('active');
+    setTimeout(() => {
+        $('#marker-lat').value = c[0];
+        $('#marker-lng').value = c[1];
+        $('#marker-name').value = '';
+        $('#marker-fish').value = '';
+        $('#marker-desc').value = '';
+        $('#marker-modal').classList.add('active');
+    }, 100);
 }
 
 function ctxSetLocation() {
     if (!_ctxCoords) return;
+    const c = _ctxCoords;
     closeContextMenu();
-    settings.lat = _ctxCoords[0];
-    settings.lng = _ctxCoords[1];
-    settings.myLocation = { lat: _ctxCoords[0], lng: _ctxCoords[1] };
-    saveData();
-    addMyLocationMark(_ctxCoords[0], _ctxCoords[1]);
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${_ctxCoords[0]}&lon=${_ctxCoords[1]}&format=json&accept-language=ru&zoom=14`)
-        .then(r => r.json())
-        .then(data => {
-            const a = data.address;
-            const city = a?.city || a?.town || a?.village || a?.hamlet || '';
-            if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
-            loadWeather();
-            showToast(`📍 ${city || _ctxCoords[0].toFixed(4)}`);
-        })
-        .catch(() => { loadWeather(); });
+    setTimeout(() => {
+        settings.lat = c[0];
+        settings.lng = c[1];
+        settings.myLocation = { lat: c[0], lng: c[1] };
+        saveData();
+        addMyLocationMark(c[0], c[1]);
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${c[0]}&lon=${c[1]}&format=json&accept-language=ru&zoom=14`)
+            .then(r => r.json())
+            .then(data => {
+                const a = data.address;
+                const city = a?.city || a?.town || a?.village || a?.hamlet || '';
+                if (city) { settings.city = city; saveData(); $('#default-city-input').value = city; }
+                loadWeather();
+                showToast(`📍 ${city || c[0].toFixed(4)}`);
+            })
+            .catch(() => { loadWeather(); });
+    }, 100);
 }
 
 function ctxAddFavorite() {
     if (!_ctxCoords) return;
+    const c = _ctxCoords;
     closeContextMenu();
-    $('#marker-lat').value = _ctxCoords[0];
-    $('#marker-lng').value = _ctxCoords[1];
-    $('#marker-name').value = '⭐ Избранное';
-    $('#marker-fish').value = '';
-    $('#marker-desc').value = '';
-    $('#marker-modal').classList.add('active');
+    setTimeout(() => {
+        $('#marker-lat').value = c[0];
+        $('#marker-lng').value = c[1];
+        $('#marker-name').value = '⭐ Избранное';
+        $('#marker-fish').value = '';
+        $('#marker-desc').value = '';
+        $('#marker-modal').classList.add('active');
+    }, 100);
 }
 
 // Поиск места на карте (Nominatim + выпадающий список)
