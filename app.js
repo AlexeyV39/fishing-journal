@@ -495,6 +495,7 @@ function toggleCatchSection() {
 function openAddModal() {
     currentEditId = null;
     photoDataUrl = null;
+    window._editPointIndex = null;
     $('#modal-title').textContent = 'Добавить улов';
     $('#catch-form').reset();
     setDefaultDate();
@@ -1700,20 +1701,33 @@ function togglePlacingMarker() {
 
 function handleMarkerSubmit(e) {
     e.preventDefault();
-    const marker = {
-        id: genId(),
+    const icon = ($('#marker-icon-select') && $('#marker-icon-select').value) || '🐟';
+    const data = {
         lat: parseFloat($('#marker-lat').value),
         lng: parseFloat($('#marker-lng').value),
         name: $('#marker-name').value.trim(),
         desc: $('#marker-desc').value.trim(),
         fish: $('#marker-fish').value.trim() || null,
-        icon: $('#marker-icon-select').value
+        icon: icon
     };
-    mapMarkers.push(marker);
-    addPlacemark(marker);
+
+    if (window._editPointIndex !== undefined && window._editPointIndex !== null) {
+        // Редактирование существующей точки
+        const idx = window._editPointIndex;
+        mapMarkers[idx] = { ...mapMarkers[idx], ...data };
+        showToast('Точка обновлена!');
+        window._editPointIndex = null;
+    } else {
+        // Новая точка
+        data.id = genId();
+        mapMarkers.push(data);
+        showToast('Точка сохранена!');
+    }
+
+    addPlacemark(mapMarkers[window._editPointIndex !== undefined ? window._editPointIndex : mapMarkers.length - 1]);
     saveData();
+    renderPointsList();
     $('#marker-modal').classList.remove('active');
-    showToast('Точка сохранена!');
 }
 
 function addPlacemark(m) {
@@ -1735,9 +1749,11 @@ function addPlacemark(m) {
         balloonContent: '<div style="font-size:1.1rem;font-weight:700;margin-bottom:4px;">' + icon + ' ' + m.name + '</div>'
             + (m.desc ? '<div style="color:#64748b;font-size:.85rem;margin-bottom:4px;">' + m.desc + '</div>' : '')
             + fishInfo
-            + '<div style="margin-top:10px;display:flex;gap:6px;flex-direction:column;">'
-            + '<a href="' + naviUrl + '" style="display:block;padding:10px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.9rem;text-align:center;font-weight:600;">🚗 Открыть в Навигаторе</a>'
-            + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
+            + '<div style="font-size:.75rem;color:#999;margin-bottom:8px;">📍 ' + m.lat.toFixed(5) + ', ' + m.lng.toFixed(5) + '</div>'
+            + '<div style="display:flex;gap:6px;flex-direction:column;">'
+            + '<a href="' + naviUrl + '" style="display:block;padding:8px 12px;background:#00bfff;color:#fff;border-radius:8px;text-decoration:none;font-size:.85rem;text-align:center;font-weight:600;">🚗 В навигатор</a>'
+            + '<button onclick="editPointByCoords(' + m.lat + ',' + m.lng + ')" style="display:block;padding:8px 12px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">✏️ Редактировать</button>'
+            + '<button onclick="deleteMapMarker(\'' + m.id + '\')" style="display:block;padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;">🗑 Удалить</button>'
             + '</div>'
     }, {
         iconLayout: 'default#imageWithContent',
@@ -2116,24 +2132,58 @@ function selectSearchResult(r) {
 function renderPointsList() {
     const list = $('#points-list');
     const count = $('#points-count');
+    if (!count || !list) return;
     count.textContent = mapMarkers.length;
 
     if (!mapMarkers.length) {
-        list.innerHTML = '<p class="empty-state">Пока нет сохранённых точек</p>';
+        list.innerHTML = '<p class="empty-state">Нет сохранённых точек. Добавьте через долгое нажатие на карту или кнопку "+ Добавить точку"</p>';
         return;
     }
 
-    list.innerHTML = mapMarkers.map(m => `
+    list.innerHTML = mapMarkers.map((m, i) => `
         <div class="point-card" onclick="flyToPoint(${m.lat},${m.lng})">
+            <div class="point-icon">${m.icon || '🐟'}</div>
             <div class="point-info">
-                <div class="point-name">🐟 ${m.name}</div>
-                ${m.fish ? `<div class="point-fish">${m.fish}</div>` : ''}
+                <div class="point-name">${m.name}</div>
+                <div class="point-coords">${m.lat.toFixed(5)}, ${m.lng.toFixed(5)}</div>
+                ${m.fish ? `<div class="point-fish">🐟 ${m.fish}</div>` : ''}
+                ${m.desc ? `<div class="point-desc">${m.desc}</div>` : ''}
             </div>
             <div class="point-actions">
-                <button class="btn btn-icon" onclick="event.stopPropagation();openDeletePointModal('${m.id}')" title="Удалить">🗑️</button>
+                <button class="btn btn-icon" onclick="event.stopPropagation(); editPoint(${i})" title="Редактировать">✏️</button>
+                <button class="btn btn-icon" onclick="event.stopPropagation(); openDeletePointModal('${m.id}')" title="Удалить">🗑️</button>
             </div>
         </div>
     `).join('');
+}
+
+function editPoint(index) {
+    const m = mapMarkers[index];
+    if (!m) return;
+    window._editPointIndex = index;
+    openMarkerModal(m);
+}
+
+function editPointByCoords(lat, lng) {
+    const idx = mapMarkers.findIndex(m => Math.abs(m.lat - lat) < 0.0001 && Math.abs(m.lng - lng) < 0.0001);
+    if (idx >= 0) editPoint(idx);
+}
+
+function openMarkerModal(m) {
+    $('#marker-lat').value = m ? m.lat : '';
+    $('#marker-lng').value = m ? m.lng : '';
+    $('#marker-name').value = m ? m.name : '';
+    $('#marker-fish').value = m ? (m.fish || '') : '';
+    $('#marker-desc').value = m ? (m.desc || '') : '';
+    if ($('#marker-icon-select')) {
+        $('#marker-icon-select').value = m ? (m.icon || '🐟') : (settings.defaultMarkerIcon || '🐟');
+    }
+    if (window._editPointIndex !== undefined && window._editPointIndex !== null) {
+        $('#modal-title').textContent = 'Редактировать точку';
+    } else {
+        $('#modal-title').textContent = 'Добавить точку';
+    }
+    $('#marker-modal').classList.add('active');
 }
 
 function flyToPoint(lat, lng) {
