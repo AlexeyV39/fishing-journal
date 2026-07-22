@@ -2428,13 +2428,13 @@ function analyzeWeatherCatch() {
     }
 
     // Группируем по температуре
-    const tempBuckets = { 'холодно (<10°)': [], 'комфорт (10-20°)': [], 'тепло (20-30°)': [], 'жарко (>30°)' };
+    const tempBuckets = { 'холодно (<10grad)': [], 'комфорт (10-20grad)': [], 'тепло (20-30grad)': [], 'жарко (>30grad)' };
     withWeather.forEach(c => {
         const t = c.weather.temp;
-        if (t < 10) tempBuckets['холодно (<10°)'].push(c);
-        else if (t < 20) tempBuckets['комфорт (10-20°)'].push(c);
-        else if (t < 30) tempBuckets['тепло (20-30°)'].push(c);
-        else tempBuckets['жарко (>30°)'].push(c);
+        if (t < 10) tempBuckets['холодно (<10grad)'].push(c);
+        else if (t < 20) tempBuckets['комфорт (10-20grad)'].push(c);
+        else if (t < 30) tempBuckets['тепло (20-30grad)'].push(c);
+        else tempBuckets['жарко (>30grad)'].push(c);
     });
 
     // Группируем по давлению
